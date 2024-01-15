@@ -3,6 +3,7 @@
 	<head>
 		<title>web Intonation</title>
 		<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+		<link rel="stylesheet" href="https://unpkg.com/keyboard-css@1.2.4/dist/css/main.min.css" />
 		<script type="text/javascript">
 			function ScaleApp()
 			{
@@ -237,16 +238,20 @@
 				</div>
 			</div>
 			<div>
-				<span style="font-weight: bold;">Keyboard</span>
+				<div>
+					<span style="font-weight: bold;">Keyboard</span><br />
+					<span>press key to play note<br />
+					click on key to edit</span>
 				<div style="display: flex; width: 100%; flex-wrap: wrap;">
 					<template x-for="(key, k) in key_maps[curr_keymap]">
 						<div style="border: 1px solid black; margin: 0.5em; padding: 0.5em; width: 10%;" :class="{'playing': playing.includes ( String (k) ) }">
 							<!--<div x-html="JSON.stringify (playing.includes (n))"></div>-->
 							<div style="display: flex; justify-content: space-between;">
 								<div style="border: 1px solid black; padding: 5px; margin-bottom: 5px;" x-html="parseInt (k) + 1"></div>
+								<input type="text" class="kbc-button"  x-model="key_maps[curr_keymap][k]" style="width: 20px;" />
 								<div x-on:click="delete key_maps[curr_keymap][k]" title="delete" style="cursor: pointer;">x</div>
 							</div>
-							<input type="text" x-model="key_maps[curr_keymap][k]" />
+							<!--<input type="text" x-model="key_maps[curr_keymap][k]" />-->
 						</div>
 					</template>
 					<button x-on:click="add_keymap_degree()">+</button>
