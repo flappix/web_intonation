@@ -1,0 +1,8 @@
+
+# WebIntonation
+
+Online tool for demonstrating differences in musical tuning systems and for developing your own custom tuning system.
+
+**Try it on https://flappix.github.io/web_intonation**
+
+Feel free to report bugs or feature requests in the issue section.
