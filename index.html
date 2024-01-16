@@ -4,29 +4,30 @@
 		<title>web Intonation</title>
 		<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 		<link rel="stylesheet" href="https://unpkg.com/keyboard-css@1.2.4/dist/css/main.min.css" />
+		<script src="https://cdn.jsdelivr.net/npm/mathjs@12.3.0/lib/browser/math.min.js"></script>
+
 		<script type="text/javascript">
 			function ScaleApp()
 			{
 				return {
+					init: function()
+					{
+						this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+						this.volume = this.audioCtx.createGain();
+						this.volume.connect (this.audioCtx.destination);
+						this.volume.gain.value = 0.03;
+					},
+					
 					oscillators: {},
 					playing: [], // currently active notes
+					volume: null,
 					createOscillator: function() {
-						if (this.audioCtx == null)
-						{
-							this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-						}
 						let oscillator = this.audioCtx.createOscillator();	
 						oscillator.type = 'sine';
-						
-						var volume = this.audioCtx.createGain();
-						volume.connect (this.audioCtx.destination);
-						volume.gain.value = 0.03;
-						
-						oscillator.connect (volume);
+						oscillator.connect (this.volume);
 						
 						return oscillator;
 					},
-					
 					playNote: function (degree)
 					{
 						if ( ! (degree in this.oscillators) )
@@ -41,9 +42,14 @@
 								let degree_adj = degree %  scale.notes.length;
 								let octave = Math.floor (degree / scale.notes.length);
 								
-								this.oscillators[degree].frequency.value = (scale.root * scale.notes[degree_adj]) * (2 ** octave);
-								this.oscillators[degree].start();
-								this.playing.push (degree);
+								// evaluate math expr to frequency
+								let freq = this.getFreq (degree_adj);
+								if (freq)
+								{
+									this.oscillators[degree].frequency.value = (scale.root * freq) * (2 ** octave);
+									this.oscillators[degree].start();
+									this.playing.push (degree);
+								}
 							}
 						}
 					},
@@ -55,6 +61,18 @@
 							this.oscillators[degree].stop();
 							delete this.oscillators[degree];
 							this.playing = this.playing.filter (d => d != degree);
+						}
+					},
+					
+					getFreq: function (n)
+					{
+						try
+						{
+							return math.evaluate ( String (this.scales[this.curr_scale].notes[n]) );
+						}
+						catch (e)
+						{
+							return null;
 						}
 					},
 					
@@ -71,38 +89,80 @@
 						just_intonation_major: {
 							type: 'relative',
 							root: 440,
-							notes: [1/1, 9/8, 5/4, 4/3, 3/2, 5/3, 15/8]
+							notes: ['1', '1 + 1/8', '1 + 1/4', '1 + 1/3', '1 + 1/2', '1 + 2/3', '1 + 7/8']
 						},
 						just_intonation_natural_minor: {
 							type: 'relative',
 							root: 440,
-							notes: [1/1, 9/8, 6/5, 4/3, 3/2, 8/5, 9/5]
+							notes: ['1', '1 + 1/8', '1 + 1/5', '1 + 1/3', '1 + 1/2', '1 + 3/5', '1 + 4/5']
 						},
 						just_intonation_harmonic_minor: {
 							type: 'relative',
 							root: 440,
-							notes: [1/1, 9/8, 6/5, 4/3, 3/2, 8/5, 15/8]
-						},
+							notes: ['1', '1 + 1/8', '1 + 1/5', '1 + 1/3', '1 + 1/2', '1 + 3/5', '1 + 7/8']
+						},						
 						just_intonation_chromatic: {
 							type: 'relative',
 							root: 440,
-							notes: [1/1, 16/15, 9/8, 6/5, 5/4, 4/3, 45/32, 3/2, 8/5, 5/3, 9/5, 15/8]
-						}
+							notes: ['1', '1 + 1/15', '1 + 1/8', '1 + 1/5', '1 + 1/4', '1 + 1/3', '1 + 13/32', '1 + 1/2', '1 + 3/5', '1 + 2/3', '1 + 4/5',  '1 + 7/8']
+						},
+						
+						equal_temperament_major: {
+							type: 'relative',
+							root: 440,
+							notes: ['1', '2^(2/12)',  '2^(4/12)', '2^(5/12)', '2^(7/12)', '2^(9/12)',  '2^(11/12)']
+						},
+						
+						equal_temperament_natural_minor: {
+							type: 'relative',
+							root: 440,
+							notes: ['1', '2^(2/12)',  '2^(3/12)', '2^(5/12)', '2^(7/12)', '2^(8/12)',  '2^(10/12)']
+						},
+						
+						equal_temperament_harmonic_minor: {
+							type: 'relative',
+							root: 440,
+							notes: ['1', '2^(2/12)',  '2^(3/12)', '2^(5/12)', '2^(7/12)', '2^(8/12)',  '2^(11/12)']
+						},
+						
+						equal_temperament_chromatic: {
+							type: 'relative',
+							root: 440,
+							notes: ['1', '2^(1/12)', '2^(2/12)',  '2^(3/12)',  '2^(4/12)', '2^(5/12)',  '2^(6/12)',  '2^(7/12)',  '2^(8/12)',  '2^(9/12)', '2^(10/12)',  '2^(11/12)']
+						},
+						
+						
+						harmonic_series: {
+							type: 'relative',
+							root: 440,
+							notes: ['1', '1 + 1/7', '1 + 1/6', '1 + 1/5', '1 + 1/4', '1 + 1/3', '1 + 1/2', '1 + 2/3', '1 + 3/4', '1 + 4/5', '1 + 5/6', '1 + 6/7']
+						},
+						
+						custom_blusey: {
+							type: 'relative',
+							root: 420,
+							notes: ['1', '6/5', '5/4', '45/32', '3/2', '3/2 + 1/6', '3/2 + 1/4'] 
+						},
+						
+						
+						custom_spooky: {
+							type: 'relative',
+							root: 210,
+							notes: [1/1, 1.6, 1.87]
+						},
 					},
 					
 					add_scale_degree: function()
 					{
 						let notes = this.scales[this.curr_scale].notes;
-						this.scales[this.curr_scale].notes.push (notes[notes.length - 1] + 0.01);
+						this.scales[this.curr_scale].notes.push (notes[notes.length - 1]);
 					},
 					
 					add_keymap_degree: function()
 					{
 						let keys = Object.keys (this.key_maps[this.curr_keymap]);
 						let last = keys[keys.length - 1];
-						console.log (keys);
 						this.key_maps[this.curr_keymap][parseInt (last) + 1] = '';
-						console.log (this.key_maps);
 					},
 					
 					
@@ -117,15 +177,14 @@
 							5:'h' ,
 							6:'j' ,
 							
-							7:'k' ,
-							8:'l' ,
-							9: 'z',
-							10: 'x',
-							11: 'c',
-							12: 'v',
-							13: 'b',
-							14: 'n',
-							15: 'm',
+							7: 'z',
+							8: 'x',
+							9: 'c',
+							10: 'v',
+							11: 'b',
+							12: 'n',
+							13: 'm',
+							
 						},
 						chords: {
 							0:'a,f,h' ,
@@ -136,15 +195,13 @@
 							5:'s,f,h' ,
 							6:'j,d,g' ,
 							
-							7:'k' ,
-							8:'l' ,
-							9: 'z',
-							10: 'x',
-							11: 'c',
-							12: 'v',
-							13: 'b',
-							14: 'n',
-							15: 'm',
+							7: 'z',
+							8: 'x',
+							9: 'c',
+							10: 'v',
+							11: 'b',
+							12: 'n',
+							13: 'm',
 						}
 					},
 					
@@ -174,87 +231,146 @@
 					}
 				};
 			}
+			
+			/*Alpine.directive('debug', (el, { expression }, { evaluate }) => {
+				el.style.backgroundColor = 'black'; 
+				el.style.fontFamily = 'monospace'; 
+				el.style.color = 'lightgreen'; 
+				el.style.fontWeight = 'bold'; 
+				el.style.padding = '0.5em'; 
+				el.style.whiteSpace = 'pre'; 
+				
+				let v = evaluate (expression);
+				console.log (v);
+				el.textContent = JSON.stringify (v, null, 2);
+			});*/
 		</script>
 
 		<style>
+			body {
+				background-color: #F2F2F2;
+			}
+			
+			.box {
+				background-color: white;
+			}
+			
+			div
+			{
+				border-radius: 0.3em;
+			}
+			
 			.playing {
 				background-color: lightblue;
+			}
+			
+			.setting
+			{
+				margin: 0.5em;
+				align-items: center;
+				display: flex;
+				background-color: #F2F2F2;
+				padding: 0.5em;
 			}
 		</style>
 	</head>
 
 	<body x-data="ScaleApp()" x-on:keydown="key_check_on" x-on:keyup="key_check_off">
-		<div style="border: 1px solid black; padding: 0.5em; margin: 0.5em;">
-			Scale <select x-model="curr_scale">
-				<template x-for="name in Object.keys (scales)">
-					<option x-html="name"></option>
-				</template>
-			</select>
+		<div style="display: flex; align-items: center; border: 1px solid black; padding: 0.5em; margin: 0.5em;" class="box">
+			<div class="setting">
+				<span style="margin-right: 0.2em;">Scale</span>
+				<select x-model="curr_scale">
+					<template x-for="name in Object.keys (scales)">
+						<option x-html="name"></option>
+					</template>
+				</select>
+			</div>
+			<div class="setting">
+				<span style="margin-right: 0.2em;">Root</span>
+				<input type="number" x-model="scales[curr_scale].root" style="width: 4em; margin-right: 0.2em;" /> Hz
+			</div>
 			
-			Keyboard <select x-model="curr_keymap">
-				<template x-for="name in Object.keys (key_maps)">
-					<option x-html="name"></option>
-				</template>
-			</select>
+			<div class="setting">
+				<span style="margin-right: 0.2em;">Keyboard</span>
+				<select x-model="curr_keymap">
+					<template x-for="name in Object.keys (key_maps)">
+						<option x-html="name"></option>
+					</template>
+				</select>
+			</div>
 			<!--<div>
 				<span>Scale Type</span>:
 				<span x-html="scales[curr_scale].type"></span>
 			</div>-->
-			<div>
-				<span>Root</span>:
-				<input type="number" x-model="scales[curr_scale].root" /> Hz
+		
+			<div class="setting">
+				<span style="margin-right: 0.2em;">Volume</span>
+				<input type="range" min="0" max="1" step="0.01" x-model="volume.gain.value" />
 			</div>
 		</div>
 		<div>
 			<div>
 				<span style="font-weight: bold;">Scale</span>
-				<div style="display: flex; width: 100%; flex-wrap: wrap;">
+				<div style="display: flex; width: 100%; flex-wrap: wrap; align-self: stretch; justify-content: stretch;">
 					<template x-for="(note, n) in scales[curr_scale].notes">
-						<div style="border: 1px solid black; margin: 0.5em; padding: 0.5em; width: 10%;" :class="{'playing': playing.map (p => p % scales[curr_scale].notes.length).includes ( n % scales[curr_scale].notes.length ) }">
+						<div style="border: 1px solid black; margin: 0.5em; padding: 0.5em; width: 10%;"
+							 class="box"
+							 :class="{'playing': playing.map (p => p % scales[curr_scale].notes.length).includes ( n % scales[curr_scale].notes.length ) }">
 							<!--<div x-html="n"></div>
 							<div x-html="n % scales[curr_scale].notes.length"></div>
 							<div x-html="JSON.stringify ( playing.map (p => p % scales[curr_scale].notes.length))"></div>
 							<div x-html="JSON.stringify (playing.includes (n))"></div>-->
 							<div style="display: flex; justify-content: space-between;">
 								<div style="border: 1px solid black; padding: 5px;" x-html="n + 1"></div>
-								<div x-on:click="scales[curr_scale].notes.splice (n, 1);" title="delete" style="cursor: pointer;">x</div>
+								<div x-on:click="scales[curr_scale].notes.splice (n, 1);" title="delete" style="cursor: pointer; font-family: monospace;">[x]</div>
 							</div>
 							<div style="display: flex;">
 								<span style="width: 50%;">ratio</span>
-								<input type="number"
+								<!--<input type="number"
 									   x-model="scales[curr_scale].notes[n]"
 									   step="0.01"
 									   :max="n < scales[curr_scale].notes.length ? scales[curr_scale].notes[n + 1]: 1"
-									   style="width: 50%;" />
+									   style="width: 50%;" />-->
+									   
+	
+								<input type="text"
+									   x-model="scales[curr_scale].notes[n]"
+									   style="width: 50%; text-align: end;" :style="{'background-color': getFreq (n) == null ? 'red' : 'none'}" />
 							</div>
-							<div>
-								freq
-								<span x-html="parseFloat ( String (scales[curr_scale].root * scales[curr_scale].notes[n]) ).toFixed(2);"></span> Hz
+							<div style="display: flex; align-items: center; justify-content: space-between;">
+								<span style="width: 50%;">freq</span>
+								<span style="font-family: monospace;" x-html="parseFloat ( String (scales[curr_scale].root * getFreq (n) ) ).toFixed(2);"></span> Hz
 							</div>
 							<!--<input type="text" x-model="key_maps[curr_keymap][n]" />-->
 						</div>
 					</template>
-					<button x-on:click="add_scale_degree()" style="cursor: pointer;" title="add scale degree">+</button>
+					<button x-on:click="add_scale_degree()" style="cursor: pointer; margin: 0.5em;" title="add scale degree">+</button>
 				</div>
 			</div>
-			<div>
+			<div style="margin-top: 1em;">
 				<div>
 					<span style="font-weight: bold;">Keyboard</span><br />
 					<span>press key to play note<br />
 					click on key to edit</span>
 				<div style="display: flex; width: 100%; flex-wrap: wrap;">
 					<template x-for="(key, k) in key_maps[curr_keymap]">
-						<div style="border: 1px solid black; margin: 0.5em; padding: 0.5em; width: 10%;" :class="{'playing': playing.includes ( String (k) ) }">
+						<div style="border: 1px solid black; margin: 0.5em; padding: 0.5em; width: 10%;"
+							 class="box"
+							 :class="{'playing': playing.includes ( String (k) ) }">
 							<!--<div x-html="JSON.stringify (playing.includes (n))"></div>-->
 							<div style="display: flex; justify-content: space-between;">
 								<div style="border: 1px solid black; padding: 5px; margin-bottom: 5px;" x-html="parseInt (k) + 1"></div>
-								<input type="text" class="kbc-button"  x-model="key_maps[curr_keymap][k]" style="width: 20px;" />
-								<div x-on:click="delete key_maps[curr_keymap][k]" title="delete" style="cursor: pointer;">x</div>
+								<input type="text"
+									   class="kbc-button"
+									   x-model="key_maps[curr_keymap][k]"
+									   style="width: 3em; text-align: center;" />
+								
+								<div x-on:click="delete key_maps[curr_keymap][k]" title="delete" style="cursor: pointer; font-family: monospace;">[x]</div>
 							</div>
 							<!--<input type="text" x-model="key_maps[curr_keymap][k]" />-->
 						</div>
 					</template>
-					<button x-on:click="add_keymap_degree()">+</button>
+					<button x-on:click="add_keymap_degree()" style="cursor: pointer; margin: 0.5em;" title="add keyboard key">+</button>
 				</div>
 			</div>
 		</div>
