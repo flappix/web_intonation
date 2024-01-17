@@ -25,6 +25,8 @@
 					oscillators: {},
 					playing: [], // currently active notes
 					volume: null,
+					marker: null, // index of scale degree to highlight
+					
 					createOscillator: function() {
 						let oscillator = this.audioCtx.createOscillator();	
 						oscillator.type = 'sine';
@@ -156,10 +158,15 @@
 						},
 					},
 					
-					add_scale_degree: function()
+					add_scale_degree: function (pos)
 					{
 						let notes = this.scales[this.curr_scale].notes;
-						this.scales[this.curr_scale].notes.push (notes[notes.length - 1]);
+						this.scales[this.curr_scale].notes.splice (pos + 1, 0, notes[pos]);
+						this.marker = pos + 1;
+						
+						setTimeout ( () => {
+							this.marker = null;
+						}, 1500);
 					},
 					
 					add_keymap_degree: function()
@@ -170,6 +177,7 @@
 					},
 					
 					
+					// todo: turn scales into arrays
 					curr_keymap: 'scale',
 					key_maps: {
 						scale: {
@@ -251,6 +259,52 @@
 		</script>
 
 		<style>
+			@keyframes myAnim {
+				0% {
+					animation-timing-function: ease-in;
+					opacity: 1;
+					transform: translateY(45px);
+				}
+
+				24% {
+					opacity: 1;
+				}
+
+				40% {
+					animation-timing-function: ease-in;
+					transform: translateY(24px);
+				}
+
+				65% {
+					animation-timing-function: ease-in;
+					transform: translateY(12px);
+				}
+
+				82% {
+					animation-timing-function: ease-in;
+					transform: translateY(6px);
+				}
+
+				93% {
+					animation-timing-function: ease-in;
+					transform: translateY(4px);
+				}
+
+				25%,
+				55%,
+				75%,
+				87% {
+					animation-timing-function: ease-out;
+					transform: translateY(0px);
+				}
+
+				100% {
+					animation-timing-function: ease-out;
+					opacity: 1;
+					transform: translateY(0px);
+				}
+			}
+			
 			body {
 				background-color: #F2F2F2;
 			}
@@ -293,7 +347,7 @@
 		<div style="display: flex; justify-content: space-between;">
 			<div style="font-weight: bold; font-size: 2em;">
 				Musical Tuing Simulator
-				<span style="visibility: hidden">Free online simulator for hearing and developing musical tunings, temperaments and scales. Supports just intonation, equal temperament and custom tuning systems.</span>
+				<span style="display: none;">Free online simulator for hearing and developing musical tunings, temperaments and scales. Supports just intonation, equal temperament and custom tuning systems.</span>
 			</div>
 			<div style="display: flex; align-items: center; border: 1px solid black; padding: 0.5em; margin: 0.5em;" class="box">
 				<div class="setting">
@@ -338,16 +392,20 @@
 				<span style="font-weight: bold;">Scale</span>
 				<div style="display: flex; width: 100%; flex-wrap: wrap; align-self: stretch; justify-content: stretch;">
 					<template x-for="(note, n) in scales[curr_scale].notes">
-						<div style="border: 1px solid black; margin: 0.5em; padding: 0.5em; width: 10%;"
+						<div style="border: 1px solid black; margin: 0.5em; padding: 0.5em; width: 10%;" :style="{'animation': marker == n ? 'myAnim 1s ease-in-out 0s 1 normal forwards' : 'none'}"
 							 class="box"
 							 :class="{'playing': playing.map (p => p % scales[curr_scale].notes.length).includes ( n % scales[curr_scale].notes.length ) }">
 							<!--<div x-html="n"></div>
 							<div x-html="n % scales[curr_scale].notes.length"></div>
 							<div x-html="JSON.stringify ( playing.map (p => p % scales[curr_scale].notes.length))"></div>
-							<div x-html="JSON.stringify (playing.includes (n))"></div>-->
+							<div x-html="JSON.stringify (playing.includes (n))"></div>
+							<div x-html="JSON.stringify (marker)"></div>-->
 							<div style="display: flex; justify-content: space-between;">
 								<div style="border: 1px solid black; padding: 5px;" x-html="n + 1"></div>
-								<div x-on:click="scales[curr_scale].notes.splice (n, 1);" title="delete" style="cursor: pointer; font-family: monospace;">[x]</div>
+								<div style="display: flex; flex-wrap: nowrap; align-items: center; margin: 0; padding: 0;">
+									<div x-on:click="scales[curr_scale].notes.splice (n, 1);" title="delete" style="cursor: pointer; font-family: monospace; margin: 0; padding: 0;">[x]</div>
+									<button x-on:click="add_scale_degree (n)" style="cursor: pointer; margin-left: 0.2em;" title="add scale degree">+</button>
+								</div>
 							</div>
 							<div style="display: flex;">
 								<span style="width: 50%;">ratio</span>
@@ -368,8 +426,9 @@
 							</div>
 							<!--<input type="text" x-model="key_maps[curr_keymap][n]" />-->
 						</div>
+						
 					</template>
-					<button x-on:click="add_scale_degree()" style="cursor: pointer; margin: 0.5em;" title="add scale degree">+</button>
+					<button x-on:click="add_scale_degree (scales[curr_scale].notes.length - 1)" style="cursor: pointer; margin: 0.5em;" title="add scale degree">+</button>
 				</div>
 			</div>
 			<div style="margin-top: 1em;">
