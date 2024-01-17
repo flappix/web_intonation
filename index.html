@@ -318,6 +318,10 @@
 				border-radius: 0.3em;
 			}
 			
+			button {
+				cursor: pointer;
+			}
+			
 			.playing {
 				background-color: lightblue;
 			}
@@ -403,8 +407,8 @@
 							<div style="display: flex; justify-content: space-between;">
 								<div style="border: 1px solid black; padding: 5px;" x-html="n + 1"></div>
 								<div style="display: flex; flex-wrap: nowrap; align-items: center; margin: 0; padding: 0;">
-									<div x-on:click="scales[curr_scale].notes.splice (n, 1);" title="delete" style="cursor: pointer; font-family: monospace; margin: 0; padding: 0;">[x]</div>
-									<button x-on:click="add_scale_degree (n)" style="cursor: pointer; margin-left: 0.2em;" title="add scale degree">+</button>
+									<button x-on:click="scales[curr_scale].notes.splice (n, 1);" title="delete" style="font-family: monospace;">x</button>
+									<button x-on:click="add_scale_degree (n)" style=" margin-left: 0.2em;" title="add scale degree">+</button>
 								</div>
 							</div>
 							<div style="display: flex;">
