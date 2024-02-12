@@ -36,18 +36,21 @@
 					},
 					playNote: function (degree)
 					{
+						console.log ('degree', degree);
 						if ( ! (degree in this.oscillators) )
 						{
 							this.oscillators[degree] = this.createOscillator();
 							
 							let scale = this.scales[this.curr_scale];
+							let scale_length = this.scale_blends[this.curr_scale_blend].length;
 						
 							if (scale.type == 'relative')
 							{
 								// transform octaves
-								let degree_adj = degree %  scale.notes.length;
-								let octave = Math.floor (degree / scale.notes.length);
+								let degree_adj = degree %  scale_length;
+								let octave = Math.floor (degree / scale_length);
 								
+								console.log ('degree_adj', degree_adj);
 								// evaluate math expr to frequency
 								let freq = this.getFreq (degree_adj);
 								if (freq)
@@ -70,11 +73,15 @@
 						}
 					},
 					
-					getFreq: function (n)
+					getFreq: function (degree)
 					{
+						console.log ('freq', degree);
+						if (this.scale_blends[this.curr_scale_blend].length > this.scales[this.curr_scale].notes.length) this.curr_scale_blend = 'chromatic';
+						
 						try
 						{
-							return math.evaluate ( String (this.scales[this.curr_scale].notes[n]) );
+							console.log (this.scale_blends[this.curr_scale_blend][degree]);
+							return math.evaluate ( String (this.scales[this.curr_scale].notes[this.scale_blends[this.curr_scale_blend][degree] - 1]) );
 						}
 						catch (e)
 						{
@@ -90,53 +97,31 @@
 						}
 					},
 					
-					curr_scale: 'just_intonation_major',
-					scales: {
-						just_intonation_major: {
-							type: 'relative',
-							root: 440,
-							notes: ['1', '1 + 1/8', '1 + 1/4', '1 + 1/3', '1 + 1/2', '1 + 2/3', '1 + 7/8']
-						},
-						just_intonation_natural_minor: {
-							type: 'relative',
-							root: 440,
-							notes: ['1', '1 + 1/8', '1 + 1/5', '1 + 1/3', '1 + 1/2', '1 + 3/5', '1 + 4/5']
-						},
-						just_intonation_harmonic_minor: {
-							type: 'relative',
-							root: 440,
-							notes: ['1', '1 + 1/8', '1 + 1/5', '1 + 1/3', '1 + 1/2', '1 + 3/5', '1 + 7/8']
-						},						
-						just_intonation_chromatic: {
+					curr_scale: 'just_intonation',
+					scales: {					
+						just_intonation: {
 							type: 'relative',
 							root: 440,
 							notes: ['1', '1 + 1/15', '1 + 1/8', '1 + 1/5', '1 + 1/4', '1 + 1/3', '1 + 13/32', '1 + 1/2', '1 + 3/5', '1 + 2/3', '1 + 4/5',  '1 + 7/8']
 						},
 						
-						equal_temperament_major: {
-							type: 'relative',
-							root: 440,
-							notes: ['1', '2^(2/12)',  '2^(4/12)', '2^(5/12)', '2^(7/12)', '2^(9/12)',  '2^(11/12)']
-						},
-						
-						equal_temperament_natural_minor: {
-							type: 'relative',
-							root: 440,
-							notes: ['1', '2^(2/12)',  '2^(3/12)', '2^(5/12)', '2^(7/12)', '2^(8/12)',  '2^(10/12)']
-						},
-						
-						equal_temperament_harmonic_minor: {
-							type: 'relative',
-							root: 440,
-							notes: ['1', '2^(2/12)',  '2^(3/12)', '2^(5/12)', '2^(7/12)', '2^(8/12)',  '2^(11/12)']
-						},
-						
-						equal_temperament_chromatic: {
+						equal_temperament: {
 							type: 'relative',
 							root: 440,
 							notes: ['1', '2^(1/12)', '2^(2/12)',  '2^(3/12)',  '2^(4/12)', '2^(5/12)',  '2^(6/12)',  '2^(7/12)',  '2^(8/12)',  '2^(9/12)', '2^(10/12)',  '2^(11/12)']
 						},
 						
+						pythagorean_tuning: {
+							type: 'relative',
+							root: 440,
+							notes: ['1', '2^8 / 3^5', '3^2 / 2^3',  '2^5 / 3^3',  '3^4 / 2^6', '2^2 / 3',  '2^10 / 3^6',  /*'3^6 / 2^9', */ '3 / 2',  '2^7 / 3^4', '3^3 / 2^4',  '2^4 / 3^2', '3^5 / 2^7']
+						},
+						
+						meantone_temperament: {
+							type: 'relative',
+							root: 440,
+							notes: ['1', '5/16 * ', '3^2 / 2^3',  '2^5 / 3^3',  '3^4 / 2^6', '2^2 / 3',  '2^10 / 3^6',  /*'3^6 / 2^9', */ '3 / 2',  '2^7 / 3^4', '3^3 / 2^4',  '2^4 / 3^2', '3^5 / 2^7']
+						},
 						
 						harmonic_series: {
 							type: 'relative',
@@ -144,10 +129,10 @@
 							notes: ['1', '1 + 1/7', '1 + 1/6', '1 + 1/5', '1 + 1/4', '1 + 1/3', '1 + 1/2', '1 + 2/3', '1 + 3/4', '1 + 4/5', '1 + 5/6', '1 + 6/7']
 						},
 						
-						custom_blusey: {
+						custom_equal_scale: {
 							type: 'relative',
 							root: 420,
-							notes: ['1', '6/5', '5/4', '45/32', '3/2', '3/2 + 1/6', '3/2 + 1/4'] 
+							notes: ['1', '1 + 1/7', '1 + 2/7', '1 + 3/7', '1 + 4/7', '1 + 5/7', '1 + 6/7']
 						},
 						
 						
@@ -156,6 +141,13 @@
 							root: 210,
 							notes: [1/1, 1.6, 1.87]
 						},
+					},
+					curr_scale_blend: 'major',
+					scale_blends: {
+						'major': [1, 3, 5, 6, 8, 10, 12],
+						'natural minor': [1, 3, 4, 6, 8, 9, 11],
+						'harmonic minor': [1, 3, 4, 6, 8, 9, 12],
+						'chromatic': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
 					},
 					
 					add_scale_degree: function (pos)
@@ -217,15 +209,29 @@
 						}
 					},
 					
+					degree2Note: function (degree)
+					{
+						let r = this.scales[this.curr_scale].notes[this.scale_blends[this.curr_scale_blend][degree]];
+						console.log ('convert degree 2 note', degree, r);
+						return r;
+					},
+					
+					note2Degree: function (note)
+					{
+						let r = this.scale_blends[this.curr_scale_blend].map (x => x - 1).indexOf (note);
+						console.log ('convert note 2 degree', note, r);
+						return r;
+					},
+					
 					get_note_by_key: function (keyChar)
 					{
-						return Object.keys (this.key_maps[this.curr_keymap]).filter (key => this.key_maps[this.curr_keymap][key].split (',').includes (keyChar) );
+						return Object.keys (this.key_maps[this.curr_keymap]).filter (key => this.key_maps[this.curr_keymap][key].split (',').includes (keyChar) );//.map ( k => this.scale_blends[this.curr_scale_blend][k] - 1 );
 					},
 					
 					key_check_on: function (event)
 					{
-						//this.key_check (event, this.playNote);
 						let notes = this.get_note_by_key (event.key);
+						console.log ('play degrees', notes);
 						for (let note of notes)
 						{
 							this.playNote (note);
@@ -349,15 +355,23 @@
 
 	<body x-data="ScaleApp()" x-on:keydown="key_check_on" x-on:keyup="key_check_off">
 		<div style="display: flex; justify-content: space-between;">
-			<div style="font-weight: bold; font-size: 2em;">
+			<div style="font-weight: bold; font-size: 2em;">			
 				Musical Tuing Simulator
 				<span style="display: none;">Free online simulator for hearing and developing musical tunings, temperaments and scales. Supports just intonation, equal temperament and custom tuning systems.</span>
 			</div>
 			<div style="display: flex; align-items: center; border: 1px solid black; padding: 0.5em; margin: 0.5em;" class="box">
 				<div class="setting">
-					<span style="margin-right: 0.2em;">Scale</span>
+					<span style="margin-right: 0.2em;">Tuning</span>
 					<select x-model="curr_scale">
 						<template x-for="name in Object.keys (scales)">
+							<option x-html="name"></option>
+						</template>
+					</select>
+				</div>
+				<div class="setting">
+					<span style="margin-right: 0.2em;">Scale</span>
+					<select x-model="curr_scale_blend" :disabled="scales[curr_scale].notes.length < scale_blends[curr_scale_blend].length">
+						<template x-for="name in Object.keys (scale_blends)">
 							<option x-html="name"></option>
 						</template>
 					</select>
@@ -395,10 +409,10 @@
 			<div>
 				<span style="font-weight: bold;">Scale</span>
 				<div style="display: flex; width: 100%; flex-wrap: wrap; align-self: stretch; justify-content: stretch;">
-					<template x-for="(note, n) in scales[curr_scale].notes">
+					<template x-for="(note, n) in scale_blends[curr_scale_blend].map (x => scales[curr_scale].notes[x])">
 						<div style="border: 1px solid black; margin: 0.5em; padding: 0.5em; width: 10%;" :style="{'animation': marker == n ? 'myAnim 1s ease-in-out 0s 1 normal forwards' : 'none'}"
 							 class="box"
-							 :class="{'playing': playing.map (p => p % scales[curr_scale].notes.length).includes ( n % scales[curr_scale].notes.length ) }">
+							 :class="{'playing': playing.map (p => p % scale_blends[curr_scale_blend].length).includes (n % scale_blends[curr_scale_blend].length ) }">
 							<!--<div x-html="n"></div>
 							<div x-html="n % scales[curr_scale].notes.length"></div>
 							<div x-html="JSON.stringify ( playing.map (p => p % scales[curr_scale].notes.length))"></div>
@@ -407,7 +421,7 @@
 							<div style="display: flex; justify-content: space-between;">
 								<div style="border: 1px solid black; padding: 5px;" x-html="n + 1"></div>
 								<div style="display: flex; flex-wrap: nowrap; align-items: center; margin: 0; padding: 0;">
-									<button x-on:click="scales[curr_scale].notes.splice (n, 1);" title="delete" style="font-family: monospace;">x</button>
+									<button x-on:click="scale_blends[curr_scale_blend].splice (n, 1);" title="delete" style="font-family: monospace;">x</button>
 									<button x-on:click="add_scale_degree (n)" style=" margin-left: 0.2em;" title="add scale degree">+</button>
 								</div>
 							</div>
@@ -418,8 +432,7 @@
 									   step="0.01"
 									   :max="n < scales[curr_scale].notes.length ? scales[curr_scale].notes[n + 1]: 1"
 									   style="width: 50%;" />-->
-									   
-	
+
 								<input type="text"
 									   x-model="scales[curr_scale].notes[n]"
 									   style="width: 50%; text-align: end;" :style="{'background-color': getFreq (n) == null ? 'red' : 'none'}" />
@@ -430,9 +443,8 @@
 							</div>
 							<!--<input type="text" x-model="key_maps[curr_keymap][n]" />-->
 						</div>
-						
 					</template>
-					<button x-on:click="add_scale_degree (scales[curr_scale].notes.length - 1)" style="cursor: pointer; margin: 0.5em;" title="add scale degree">+</button>
+					<button x-on:click="add_scale_degree (scale_blends[curr_scale_blend].length - 1)" style="cursor: pointer; margin: 0.5em;" title="add scale degree">+</button>
 				</div>
 			</div>
 			<div style="margin-top: 1em;">
@@ -440,25 +452,26 @@
 					<span style="font-weight: bold;">Keyboard</span><br />
 					<span>press key to play note<br />
 					click on key to edit</span>
-				<div style="display: flex; width: 100%; flex-wrap: wrap;">
-					<template x-for="(key, k) in key_maps[curr_keymap]">
-						<div style="border: 1px solid black; margin: 0.5em; padding: 0.5em; width: 10%;"
-							 class="box"
-							 :class="{'playing': playing.includes ( String (k) ) }">
-							<!--<div x-html="JSON.stringify (playing.includes (n))"></div>-->
-							<div style="display: flex; justify-content: space-between;">
-								<div style="border: 1px solid black; padding: 5px; margin-bottom: 5px;" x-html="parseInt (k) + 1"></div>
-								<input type="text"
-									   class="kbc-button"
-									   x-model="key_maps[curr_keymap][k]"
-									   style="width: 3em; text-align: center;" />
-								
-								<div x-on:click="delete key_maps[curr_keymap][k]" title="delete" style="cursor: pointer; font-family: monospace;">[x]</div>
+					<div style="display: flex; width: 100%; flex-wrap: wrap;">
+						<template x-for="(key, k) in key_maps[curr_keymap]">
+							<div style="border: 1px solid black; margin: 0.5em; padding: 0.5em; width: 10%;"
+								 class="box"
+								 :class="{'playing': playing.includes ( String (k) ) }">
+								<!--<div x-html="JSON.stringify (playing.includes (n))"></div>-->
+								<div style="display: flex; justify-content: space-between;">
+									<div style="border: 1px solid black; padding: 5px; margin-bottom: 5px;" x-html="parseInt (k) + 1"></div>
+									<input type="text"
+										   class="kbc-button"
+										   x-model="key_maps[curr_keymap][k]"
+										   style="width: 3em; text-align: center;" />
+									
+									<div x-on:click="delete key_maps[curr_keymap][k]" title="delete" style="cursor: pointer; font-family: monospace;">[x]</div>
+								</div>
+								<!--<input type="text" x-model="key_maps[curr_keymap][k]" />-->
 							</div>
-							<!--<input type="text" x-model="key_maps[curr_keymap][k]" />-->
-						</div>
-					</template>
-					<button x-on:click="add_keymap_degree()" style="cursor: pointer; margin: 0.5em;" title="add keyboard key">+</button>
+						</template>
+						<button x-on:click="add_keymap_degree()" style="cursor: pointer; margin: 0.5em;" title="add keyboard key">+</button>
+					</div>
 				</div>
 			</div>
 		</div>
