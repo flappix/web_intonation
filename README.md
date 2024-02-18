@@ -25,7 +25,8 @@ Feel free to report bugs or feature requests in the issue section.
 - Each tuning system/ scale can be freely extended / replaced with your own custom intervals
 
 - Configurable keyboard
-  - play scales or map multiple intervals to one key to play chords easily
+  - play scales
+  - map multiple intervals to one key to play chords easily
 
 - Calculation of all frequency ratios
 
