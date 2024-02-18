@@ -259,10 +259,15 @@ function ScaleApp()
 		isPure: function (degree) {
 			try
 			{
+				console.log ('crn', this.curr_notes[degree]);
 				return this.pureIntervals.filter ( (pi) => {
-					let r  = math.evaluate (`${this.curr_notes[degree] ?? ''} / ${pi}` );
+					let r  = math.evaluate (`( ${this.curr_notes[degree] ?? ''} ) / ( ${pi} )` );
+					console.log (pi);
+					console.log (this.curr_notes[degree] ?? '');
+					console.log (r);
+					console.log ('----');
 					return r == Math.floor (r);
-				});
+				}).length > 0;
 			}
 			catch (err) {
 				return '';
