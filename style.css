@@ -1,0 +1,93 @@
+@keyframes myAnim {
+	0% {
+		animation-timing-function: ease-in;
+		opacity: 1;
+		transform: translateY(45px);
+	}
+
+	24% {
+		opacity: 1;
+	}
+
+	40% {
+		animation-timing-function: ease-in;
+		transform: translateY(24px);
+	}
+
+	65% {
+		animation-timing-function: ease-in;
+		transform: translateY(12px);
+	}
+
+	82% {
+		animation-timing-function: ease-in;
+		transform: translateY(6px);
+	}
+
+	93% {
+		animation-timing-function: ease-in;
+		transform: translateY(4px);
+	}
+
+	25%,
+	55%,
+	75%,
+	87% {
+		animation-timing-function: ease-out;
+		transform: translateY(0px);
+	}
+
+	100% {
+		animation-timing-function: ease-out;
+		opacity: 1;
+		transform: translateY(0px);
+	}
+}
+
+body {
+	background-color: #F2F2F2;
+}
+
+.box {
+	background-color: white;
+}
+
+div
+{
+	border-radius: 0.3em;
+}
+
+button {
+	cursor: pointer;
+}
+
+
+.setting
+{
+	margin: 0.5em;
+	align-items: center;
+	display: flex;
+	background-color: #F2F2F2;
+	padding: 0.5em;
+}
+
+.link {
+	background-color: #E2E2E2;
+	border-radius: 0.3em;
+	margin: 0.2em;
+	padding: 0 0.3em 0 0.3em;
+	display: flex;
+	align-items: center;
+	box-shadow: 2px 2px 5px #929292;
+}
+
+.shadow {
+	//box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+	//box-shadow: rgba(0, 0, 0, 0.16) 0px 3px 6px, rgba(0, 0, 0, 0.23) 0px 3px 6px;
+	box-shadow: rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.05) 0px 4px 6px -2px;
+	
+}
+
+.shadowStrong {
+	box-shadow: #505050 0px 20px 30px -10px;
+}
