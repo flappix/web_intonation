@@ -151,12 +151,29 @@ function ScaleApp()
 				}
 			};
 			
-			oscillator.stopAll = function() {
-				this.stop();
-				for (let h of this.harmonics)
+			oscillator.stopAll = () => {
+				let osc = oscillator;
+				osc.envelope.gain.cancelScheduledValues (osc.envelope.starttime);
+				osc.envelope.gain.linearRampToValueAtTime (0, this.audioCtx.currentTime + 0.5);
+				for (let h of osc.harmonics)
 				{
-					h.stop();
+					h.envelope.gain.cancelScheduledValues (h.envelope.starttime);
+					h.envelope.gain.linearRampToValueAtTime (0, this.audioCtx.currentTime + 0.5);
 				}
+				
+				setTimeout ( () => {
+					
+					//osc.disconnect (this.audioCtx.destination);
+					osc.envelope.gain.setValueAtTime (0, this.audioCtx.currentTime);
+					osc.envelope.disconnect (this.audioCtx.destination);
+					osc.stop();
+					for (let h of osc.harmonics)
+					{
+						h.envelope.disconnect (this.audioCtx.destination);
+						h.stop();
+					}
+					
+				}, 500);
 			};
 			
 			
@@ -204,17 +221,9 @@ function ScaleApp()
 			if (degree in this.oscillators)
 			{
 				let osc = this.oscillators[degree];
+				osc.stopAll();
 				delete this.oscillators[degree];
-				osc.envelope.gain.cancelScheduledValues (osc.envelope.starttime);
-				osc.envelope.gain.linearRampToValueAtTime(0, this.audioCtx.currentTime + 0.5);
-				setTimeout ( () => {
-					
-					//osc.disconnect (this.audioCtx.destination);
-					osc.envelope.gain.setValueAtTime (0, this.audioCtx.currentTime);
-					osc.envelope.disconnect (this.audioCtx.destination);
-					osc.stopAll();
-					
-				}, 500);
+				
 				
 				this.playing = this.playing.filter (d => d != degree);
 				
