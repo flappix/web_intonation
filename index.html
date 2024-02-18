@@ -2,57 +2,157 @@
 <html lang="en">
 	<head>
 		<title>web Intonation</title>
+		<script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
 		<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 		<link rel="stylesheet" href="https://unpkg.com/keyboard-css@1.2.4/dist/css/main.min.css" />
 		<script src="https://cdn.jsdelivr.net/npm/mathjs@12.3.0/lib/browser/math.min.js"></script>
+		<script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
 		
 		<meta name="description" content="Free online simulator for hearing and developing musical tunings, temperaments and tunings" />
 		<meta property="og:type" content="website" />
 		<meta property="og:url" content="https://flappix.github.io/web_intonation/" />
 
 		<script type="text/javascript">
+			// functional filter method for objects
+			function filterObj (obj, func) {
+				return Object.fromEntries ( Object.entries (obj).filter (func) );
+			}
+                  
 			function ScaleApp()
 			{
 				return {
 					init: function()
 					{
 						this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-						this.volume = this.audioCtx.createGain();
-						this.volume.connect (this.audioCtx.destination);
-						this.volume.gain.value = 0.03;
+						//this.volume = this.audioCtx.createGain();
+						//this.volume.connect (this.audioCtx.destination);
+						//this.volume.gain.value = 0.01;
 						
 						this.curr_notes = this.createFromTemplate (this.curr_tuning, this.curr_scale);
-						console.log ('init ready');
+						
+						this.initPlot();
+					},
+					initPlot: function()
+					{
+						let x = Array.from(Array(100).keys()).map (x => x / Math.PI);
+						Plotly.newPlot ('graph', [{
+						  x: x,
+						  y: x.map ( x => Math.sin (x * 2) ),
+						  line: {
+							  shape: 'spline',
+							  color: this.colors[0],
+						  },
+						  type: 'scatter',
+						  name: '1'
+						}],
+						{
+							xaxis: {
+								showticklabels: false,
+								range: [0, Math.PI * this.graph_periods],
+								title: { text: 'time' }
+							},
+							yaxis: {
+								showticklabels: false,
+								title: { text: 'amplitude', standoff: 40},
+								standoff: 40,
+							},
+							 margin: {
+								l: 40,
+								r: 0,
+								b: 0,
+								t: 10,
+								pad: 0
+							},
+							showlegend: true,
+							hovermode: false,
+						});
+					},
+					updatePeriods: function () {
+						for (let d=0; d < this.graph_show_degrees.length; d++) {
+							let degree = this.graph_show_degrees[d];
+							const [degree_adj, octave] = this.getOctave (degree);
+							Plotly.deleteTraces ('graph', 0);
+							this.updatePlot (degree_adj, octave);
+						}
+						
+						Plotly.relayout ('graph', {
+							xaxis: {
+								showticklabels: false,
+								range: [0, Math.PI * this.graph_periods]
+							}
+						});
 					},
 					
 					oscillators: {},
 					playing: [], // currently active notes
-					volume: null,
+					volume: 0.01,
 					marker: null, // index of scale degree to highlight
+					//curr_notes: Alpine.$persist([]),
 					curr_notes: [],
+					curr_ratios: [],
+					graph_show_degrees: [0],
+					graph_periods: 1,
+					colors: ['rgba(141, 211, 199, 1)',
+							 'rgba(190, 186, 218, 1)',
+							 'rgba(251, 128, 114, 1)',
+							 'rgba(128, 177, 211, 1)',
+							 'rgba(253, 180, 98, 1)',
+							 'rgba(179, 222, 105, 1)',
+							 'rgba(252, 205, 229, 1)',
+							 'rgba(217, 217, 217, 1)',
+							 'rgba(188, 128, 189, 1)',
+							 'rgba(204, 235, 197, 1)',
+							 'rgba(255, 237, 111, 1)',
+							 '#8E8E00'],
+					filter: ['scale', 'keyboard', 'graph', 'inter_scale_ratios'],
+					dropdown: {
+						show: null,
+						tuning: 'just_intonation',
+						scale: 'major',
+						degree: 0,
+					},
 					
 					createOscillator: function() {
+						console.log ('create oscillator')
 						let oscillator = this.audioCtx.createOscillator();	
 						oscillator.type = 'sine';
-						oscillator.connect (this.volume);
+						//oscillator.connect (this.volume);
+						
+						let envelope = this.audioCtx.createGain();
+						envelope.connect (this.audioCtx.destination);
+						oscillator.connect (envelope);
+						oscillator.envelope = envelope;
+						
+						
+						envelope.gain.setValueAtTime(0, 0);
+						//envelope.gain.setValueAtTime(0.1,  this.audioCtx.currentTime + 0.5);
+						envelope.starttime = this.audioCtx.currentTime + 0.3;
+						envelope.gain.linearRampToValueAtTime (this.volume, envelope.starttime);
+						
+						
 						
 						return oscillator;
 					},
+					
+					getOctave: function (degree) {
+						let len = Object.values (this.curr_notes).length;
+						// transform octaves
+						let degree_adj = degree %  len;
+						let octave = Math.floor (degree / len);
+						return [degree_adj, octave];
+					},
+					
 					playNote: function (degree)
 					{
-						console.log ('degree', degree);
+						degree = Number (degree);
+						
 						if ( ! (degree in this.oscillators) )
 						{
 							this.oscillators[degree] = this.createOscillator();
 							
-							let len = Object.values (this.curr_notes).length;
-							
 							// transform octaves
-							let degree_adj = degree %  len;
-							console.log (this.curr_notes.length);
-							let octave = Math.floor (degree / len);
+							const [degree_adj, octave] = this.getOctave (degree);
 							
-							console.log ('degree_adj', degree_adj);
 							// evaluate math expr to frequency
 							let freq = this.getFreq (degree_adj);
 							if (freq)
@@ -60,17 +160,39 @@
 								this.oscillators[degree].frequency.value = (this.root * freq) * (2 ** octave);
 								this.oscillators[degree].start();
 								this.playing.push (degree);
+								
+								if ( ! this.graph_show_degrees.includes (degree) ) {
+									this.updatePlot (degree_adj, octave);
+								}
 							}
 						}
 					},
 					
 					stopNote: function (degree)
 					{
+						degree = Number (degree);
+						
 						if (degree in this.oscillators)
 						{
-							this.oscillators[degree].stop();
+							let osc = this.oscillators[degree];
 							delete this.oscillators[degree];
+							osc.envelope.gain.cancelScheduledValues (osc.envelope.starttime);
+							osc.envelope.gain.linearRampToValueAtTime(0, this.audioCtx.currentTime + 0.5);
+							setTimeout ( () => {
+								
+								//osc.disconnect (this.audioCtx.destination);
+								osc.envelope.gain.setValueAtTime (0, this.audioCtx.currentTime);
+								osc.envelope.disconnect (this.audioCtx.destination);
+								osc.stop();
+								
+							}, 500);
+							
 							this.playing = this.playing.filter (d => d != degree);
+							
+							if ( ! this.graph_show_degrees.includes (degree) )
+							{
+								Plotly.deleteTraces ( 'graph', this.playing.indexOf (degree) );
+							}
 						}
 					},
 					
@@ -84,6 +206,9 @@
 						{
 							return null;
 						}
+					},
+					formatFreq: function (freq) {
+						return parseFloat ( String (this.root * this.getFreq (freq) ) ).toFixed(2);
 					},
 					
 					stopAll: function()
@@ -99,22 +224,26 @@
 					tunings: {					
 						just_intonation: {
 							type: 'relative',
+							scalable: true, // a scale can be applied
 							notes: ['1', '1 + 1/15', '1 + 1/8', '1 + 1/5', '1 + 1/4', '1 + 1/3', '1 + 13/32', '1 + 1/2', '1 + 3/5', '1 + 2/3', '1 + 4/5',  '1 + 7/8']
 						},
 						
 						equal_temperament: {
 							type: 'relative',
+							scalable: true, // a scale can be applied
 							notes: ['1', '2^(1/12)', '2^(2/12)',  '2^(3/12)',  '2^(4/12)', '2^(5/12)',  '2^(6/12)',  '2^(7/12)',  '2^(8/12)',  '2^(9/12)', '2^(10/12)',  '2^(11/12)']
 						},
 						
 						pythagorean_tuning: {
 							type: 'relative',
+							scalable: true, // a scale can be applied
 							notes: ['1', '2^8 / 3^5', '3^2 / 2^3',  '2^5 / 3^3',  '3^4 / 2^6', '2^2 / 3',  '2^10 / 3^6',  /*'3^6 / 2^9', */ '3 / 2',  '2^7 / 3^4', '3^3 / 2^4',  '2^4 / 3^2', '3^5 / 2^7']
 						},
 						
 						meantone_temperament: {
 							type: 'relative',
-							notes: ['1', '5/16', '3^2 / 2^3',  '2^5 / 3^3',  '3^4 / 2^6', '2^2 / 3',  '2^10 / 3^6',  /*'3^6 / 2^9', */ '3 / 2',  '2^7 / 3^4', '3^3 / 2^4',  '2^4 / 3^2', '3^5 / 2^7']
+							scalable: true, // a scale can be applied
+							notes: ['1', '5/16 * nthRoot(5^3, 4)', '1/2 * sqrt(5)', '4/5 * nthRoot(5,4)', '1 + 1/4', '2/5 * nthRoot(5^3,4)', '5/8 * sqrt(5)', 'nthRoot(5,4)', '25/16', '1/2 * nthRoot(5^3,4)', '4/5 * sqrt(5)', '5/4 * nthRoot(5,4)']
 						},
 						
 						harmonic_series: {
@@ -144,24 +273,26 @@
 					
 					createFromTemplate: function (tuning, scale)
 					{
-						console.log ('tuning', tuning);
 						let notes = this.tunings[tuning].notes;
-						if (notes.length < 12)
+						if (!this.tunings[tuning].scalable)
 						{
 							scale = 'chromatic';
 							this.curr_scale = scale;
 						}
-						console.log ('scale', scale);
-						console.log ('notes', notes);
+
 						let myscale = this.scales[scale].slice (0, notes.length);
-						console.log ('myscale', myscale);
-						return myscale.map (n => {console.log (n, notes[n - 1]); return notes[n - 1];});
+						//return Alpine.$persist ( myscale.map (n => {console.log (n, notes[n - 1]); return notes[n - 1];}) );
+						this.graph_show_degrees = [0];
+						this.initPlot();
+						return myscale.map (n => notes[n - 1]);
 					},
 					
 					add_scale_degree: function (pos)
 					{
-						this.curr_notes.splice (pos + 1, 0, this.curr_notes[pos]);
+						let dropdown = this.dropdown;
+						this.curr_notes.splice (pos + 1, 0, this.tunings[dropdown.tuning].notes[this.scales[dropdown.scale][dropdown.degree] - 1]);
 						this.marker = pos + 1;
+						dropdown.show = null;
 						
 						setTimeout ( () => {
 							this.marker = null;
@@ -216,15 +347,79 @@
 						}
 					},
 					
+					getInterScaleRatios: function() {
+						let result  = [];
+						
+						let playing = Array.from ( new Set ([...this.playing.map (d => d % this.curr_notes.length), ...this.graph_show_degrees.map (d => d % this.curr_notes.length )]) );
+						playing.sort();
+						for (let p=0; p < playing.length - 1; p++)
+						{
+							let rows = [];
+							for (let pp = p + 1; pp < playing.length; pp++)
+							{								
+								let expr = `( ${this.curr_notes[playing[pp]]}) / ( ${this.curr_notes[playing[p]]})`;
+								rows.push ({i1: playing[p], i2: playing[pp], resolved: math.simplify (expr) , approx: math.evaluate (expr).toFixed(2)});
+							}
+							
+							result.push (rows);
+						}
+	
+						return result;
+					
+					},
+					
 					get_note_by_key: function (keyChar)
 					{
 						return Object.keys (this.key_maps[this.curr_keymap]).filter (key => this.key_maps[this.curr_keymap][key].split (',').includes (keyChar) );//.map ( k => this.scales[this.curr_scale][k] - 1 );
 					},
 					
+					updatePlot: function (degree, octave) {
+						// calculate needed resolution
+						let x = [];
+						for (let i=0; i<Math.PI * (this.graph_periods); i += 1 / (100 / Math.PI * (this.graph_periods) ) )
+						{
+							x.push (i);
+						}
+						
+						let trace = {
+							x: x,
+							y: x.map ( x =>  Math.sin ( math.evaluate ( String (this.curr_notes[degree] ) ) * (octave + 1) * x * 2 ) ),
+							type: 'scatter',
+							line: {
+								shape: 'spline',
+								color: this.colors[degree],
+							},
+							name: (degree + 1) + (octave * this.curr_notes.length)         
+						};
+
+						Plotly.addTraces ('graph', trace);
+					},
+					
+					toggleList: function (list, item) {
+						if ( list.includes (item) ) {
+							return list.filter (i => i != item);
+						}
+						else {
+							list.push (item);
+							return list;
+						}
+					},
+					toggleGrapShowDegree: function (degree) {
+						if ( this.graph_show_degrees.includes (degree) ) {
+							Plotly.deleteTraces ( 'graph', this.graph_show_degrees.indexOf (degree) );
+							this.graph_show_degrees = this.graph_show_degrees.filter (d => d != degree);
+							
+						}
+						else {
+							this.graph_show_degrees.push (degree);
+							const [degree_adj, octave] = this.getOctave (degree);
+							this.updatePlot (degree_adj, octave);
+						}
+					},
+					
 					key_check_on: function (event)
 					{
 						let notes = this.get_note_by_key (event.key);
-						console.log ('play degrees', notes);
 						for (let note of notes)
 						{
 							this.playNote (note);
@@ -333,10 +528,7 @@
 			button {
 				cursor: pointer;
 			}
-			
-			.playing {
-				background-color: lightblue;
-			}
+
 			
 			.setting
 			{
@@ -356,6 +548,17 @@
 				align-items: center;
 				box-shadow: 2px 2px 5px #929292;
 			}
+			
+			.shadow {
+				//box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+				//box-shadow: rgba(0, 0, 0, 0.16) 0px 3px 6px, rgba(0, 0, 0, 0.23) 0px 3px 6px;
+				box-shadow: rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.05) 0px 4px 6px -2px;
+				
+			}
+			
+			.shadowStrong {
+				box-shadow: #505050 0px 20px 30px -10px;
+			}
 		</style>
 	</head>
 
@@ -365,45 +568,54 @@
 				Musical Tuing Simulator
 				<span style="display: none;">Free online simulator for hearing and developing musical tunings, temperaments and tunings. Supports just intonation, equal temperament and custom tuning systems.</span>
 			</div>
-			<div style="display: flex; align-items: center; border: 1px solid black; padding: 0.5em; margin: 0.5em;" class="box">
-				<div class="setting">
-					<span style="margin-right: 0.2em;">Tuning</span>
-					<select x-model="curr_tuning" x-on:change="curr_notes = createFromTemplate (curr_tuning, curr_scale)">
-						<template x-for="name in Object.keys (tunings)">
-							<option x-html="name"></option>
-						</template>
-					</select>
-				</div>
-				<div class="setting">
-					<span style="margin-right: 0.2em;">Scale</span>
-					<select x-model="curr_scale" x-on:change="curr_notes = createFromTemplate (curr_tuning, curr_scale)">
-						<template x-for="name in Object.keys (scales)">
-							<option x-html="name"></option>
-						</template>
-					</select>
-				</div>
-				<div class="setting">
-					<span style="margin-right: 0.2em;">Root</span>
-					<input type="number" x-model="root" style="width: 4em; margin-right: 0.2em;" /> Hz
-				</div>
+			<div style="border: 1px solid black; padding: 0.5em; margin: 0.5em;" class="box">
+				<div style="display: flex; align-items: center;">
+					<div class="setting">
+						<span style="margin-right: 0.2em;">Tuning</span>
+						<select x-model="curr_tuning" x-on:change="curr_notes = createFromTemplate (curr_tuning, curr_scale)">
+							<template x-for="name in Object.keys ( filterObj (tunings, t => t[1].scalable) )">
+								<option x-html="name" ></option>
+							</template>
+							<option disabled>&#9472;&#9472;&#9472;&#9472;</option>
+							<template x-for="name in Object.keys ( filterObj (tunings, t => !t[1].scalable) )">
+								<option x-html="name" ></option>
+							</template>
+						</select>
+					</div>
+					<div class="setting">
+						<span style="margin-right: 0.2em;">Scale</span>
+						<select x-model="curr_scale" x-on:change="curr_notes = createFromTemplate (curr_tuning, curr_scale)">
+							<template x-for="name in Object.keys (scales)">
+								<option x-html="name" :disabled="!tunings[curr_tuning].scalable && name != 'chromatic'"></option>
+							</template>
+						</select>
+					</div>
+					
+					<div class="setting">
+						<span style="margin-right: 0.2em;">Root</span>
+						<input type="number" x-model="root" style="width: 4em; margin-right: 0.2em;" /> Hz
+					</div>
+					
+					<div class="setting">
+						<span style="margin-right: 0.2em;">Keyboard</span>
+						<select x-model="curr_keymap">
+							<template x-for="name in Object.keys (key_maps)">
+								<option x-html="name"></option>
+							</template>
+						</select>
+					</div>
+					<!--<div>
+						<span>Scale Type</span>:
+						<span x-html="tunings[curr_tuning].type"></span>
+					</div>-->
 				
-				<div class="setting">
-					<span style="margin-right: 0.2em;">Keyboard</span>
-					<select x-model="curr_keymap">
-						<template x-for="name in Object.keys (key_maps)">
-							<option x-html="name"></option>
-						</template>
-					</select>
+					<div class="setting">
+						<span style="margin-right: 0.2em;">Volume</span>
+						<input type="range" min="0" max="0.1" step="0.001" x-model="volume" />
+					</div>
 				</div>
-				<!--<div>
-					<span>Scale Type</span>:
-					<span x-html="tunings[curr_tuning].type"></span>
-				</div>-->
-			
-				<div class="setting">
-					<span style="margin-right: 0.2em;">Volume</span>
-					<input type="range" min="0" max="1" step="0.01" x-model="volume.gain.value" />
-				</div>
+				<button x-on:click="curr_notes = createFromTemplate (curr_tuning, curr_scale)" style="margin-left: 0.5em;">reset</button>
+				<button x-on:click="curr_notes = [1]" style="margin-left: 0.5em;">clear</button>
 			</div>
 			<div style="display: flex; align-items: stretch;">
 				<a href="https://github.com/flappix/web_intonation" class="link" title="this project on github"><svg style="width: 2.5em;" aria-hidden="true" viewBox="0 0 16 16" version="1.1" width="32" data-view-component="true" class="octicon octicon-mark-github v-align-middle color-fg-default"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"></path></svg></a>
@@ -412,27 +624,77 @@
 			</div>
 		</div>
 		<div>
-			<div>
-				<span style="font-weight: bold;">Scale</span>
+			<span x-on:click="filter = toggleList (filter, 'scale')"
+				  style="font-weight: bold; cursor: pointer;"
+				  :style="{color: filter.includes ('scale') ? 'black' : 'gray'}">&#128065; Scale</span>
+			<div x-show="filter.includes ('scale')">
 				<div style="display: flex; width: 100%; flex-wrap: wrap; align-self: stretch; justify-content: stretch;">
-					<template x-for="(note, n) in curr_notes">
-						<div style="border: 1px solid black; margin: 0.5em; padding: 0.5em; width: 10%;" :style="{'animation': marker == n ? 'myAnim 1s ease-in-out 0s 1 normal forwards' : 'none'}"
-							 class="box"
-							 :class="{'playing': playing.map (p => Number (p) % curr_notes.length).includes (n) }">
+					<template x-for="(note, n) in curr_notes" :key="n">
+						<div style="border: 1px solid black; margin: 0.5em; padding: 0.5em; width: 10%;"
+							 class="box shadow"
+							 :style="{
+								'animation': marker == n ? 'myAnim 1s ease-in-out 0s 1 normal forwards' : 'none',
+								'background-color': playing.map (p => Number (p) % curr_notes.length).includes (n) ? colors[n] : 'none'
+							 }">
 							<!--<div x-html="n"></div>
 							<div x-html="n % tunings[curr_tuning].notes.length"></div>
 							<div x-html="JSON.stringify ( playing.map (p => p % tunings[curr_tuning].notes.length))"></div>
 							<div x-html="JSON.stringify (playing.includes (n))"></div>
 							<div x-html="JSON.stringify (marker)"></div>-->
 							<div style="display: flex; justify-content: space-between;">
-								<div style="border: 1px solid black; padding: 5px;" x-html="n + 1"></div>
+								<div style="border: 1px solid black; padding: 0.5em;"
+									 :style="{'background-color': colors[n]}"
+									 x-html="n + 1"></div>
+								<i x-show="n > 0 && tunings.just_intonation.notes.map (n => math.evaluate (n)).includes ( math.evaluate (curr_notes[n] ?? '') )">pure</i>
 								<div style="display: flex; flex-wrap: nowrap; align-items: center; margin: 0; padding: 0;">
+									<div style="margin-right: 0.5em; cursor: pointer; height: fit-content;"
+										 :style="{'color': !graph_show_degrees.includes (n) ? '#A1A1A1' : 'black'}"
+										 x-on:click="toggleGrapShowDegree (n)"
+										 title="show/hide graph trace"> ~&#128065; </div> <!-- eye -->
 									<button x-on:click="curr_notes.splice (n, 1);" title="delete" style="font-family: monospace;">x</button>
-									<button x-on:click="add_scale_degree (n)" style=" margin-left: 0.2em;" title="add scale degree">+</button>
+									<div>
+										<button x-on:click="dropdown.show = n"  style=" margin-left: 0.2em;" title="add scale degree">+</button>
+										<div style="position: absolute; padding: 1em; z-index: 999;" class="box shadowStrong" x-show="dropdown.show === n" x-on:click.outside="dropdown.show = null;">
+											Select preset
+											<div class="setting">
+												<span style="margin-right: 0.2em;">Tuning</span>
+												<select x-model="dropdown.tuning">
+													<template x-for="name in Object.keys ( filterObj (tunings, t => t[1].scalable) )">
+														<option x-html="name" ></option>
+													</template>
+													<option disabled>&#9472;&#9472;&#9472;&#9472;</option>
+													<template x-for="name in Object.keys ( filterObj (tunings, t => !t[1].scalable) )">
+														<option x-html="name" ></option>
+													</template>
+												</select>
+											</div>
+											<div class="setting">
+												<span style="margin-right: 0.2em;">Scale</span>
+												<select x-model="dropdown.scale">
+													<template x-for="name in Object.keys (scales)">
+														<option x-html="name"></option>
+													</template>
+												</select>
+											</div>
+											<div class="setting">
+												<span style="margin-right: 0.2em;">Degree</span>
+												<select x-model="dropdown.degree">
+													<template x-for="degree in Object.keys (scales[dropdown.scale])" :key="degree">
+														<option x-html="Number (degree) + 1" :value="degree"></option>
+													</template>
+												</select>
+											</div>
+											
+											<div style="display: flex; justify-content: end;">
+												<button x-on:click="dropdown.show = null">cancel</button>&nbsp;
+												<button x-on:click="add_scale_degree (n)">add</button>
+											</div>
+										</div>
+									</div>
 								</div>
 							</div>
 							<div style="display: flex;">
-								<span style="width: 50%;">ratio</span>
+								<span style="margin-right: 0.5em;">ratio</span>
 								<!--<input type="number"
 									   x-model="tunings[curr_tuning].notes[n]"
 									   step="0.01"
@@ -441,31 +703,33 @@
 
 								<input type="text"
 									   x-model="curr_notes[n]"
-									   style="width: 50%; text-align: end;" :style="{'background-color': getFreq (n) == null ? 'red' : 'none'}" />
+									   style="width: 80%; text-align: end;" :style="{'background-color': getFreq (n) == null ? 'red' : 'none'}" />
 							</div>
 							<div style="display: flex; align-items: center; justify-content: space-between;">
-								<span style="width: 50%;">freq</span>
-								<span style="font-family: monospace;" x-html="parseFloat ( String (root * getFreq (n) ) ).toFixed(2);"></span> Hz
+								<span style="width: 50%; cursor: help;" :title="`root &#215; ratio = ${formatFreq (n)}Hz`">freq</span>
+								<span style="font-family: monospace;" x-html="formatFreq (n)"></span> Hz
 							</div>
 							<!--<input type="text" x-model="key_maps[curr_keymap][n]" />-->
 						</div>
 					</template>
-					<button x-on:click="add_scale_degree (curr_notes.length - 1)" style="cursor: pointer; margin: 0.5em;" title="add scale degree">+</button>
+					<button x-on:click="dropdown.show = curr_notes.length - 1" style="cursor: pointer; margin: 0.5em;" title="add scale degree">+</button>
 				</div>
-			</div>
+			</div>			
+			
 			<div style="margin-top: 1em;">
-				<div>
-					<span style="font-weight: bold;">Keyboard</span><br />
+				<span x-on:click="filter = toggleList (filter, 'keyboard')"
+				  style="font-weight: bold; cursor: pointer;"
+				  :style="{color: filter.includes ('keyboard') ? 'black' : 'gray'}">&#128065; Keyboard</span>
+				<div x-show="filter.includes ('keyboard')">
 					<span>press key to play note<br />
 					click on key to edit</span>
 					<div style="display: flex; width: 100%; flex-wrap: wrap;">
 						<template x-for="(key, k) in key_maps[curr_keymap]">
 							<div style="border: 1px solid black; margin: 0.5em; padding: 0.5em; width: 10%;"
-								 class="box"
-								 :class="{'playing': playing.includes ( String (k) ) }">
-								<!--<div x-html="JSON.stringify (playing.includes (n))"></div>-->
+								 class="box shadow"
+								 :style="{'background-color': playing.map (p => Number (p)).includes ( Number (k) ) ? colors[k % curr_notes.length] : 'none'}">
 								<div style="display: flex; justify-content: space-between;">
-									<div style="border: 1px solid black; padding: 5px; margin-bottom: 5px;" x-html="parseInt (k) + 1"></div>
+									<div style="border: 1px solid black; padding: 5px; margin-bottom: 5px;" :style="{'background-color': colors[k % curr_notes.length]}" x-html="parseInt (k) + 1"></div>
 									<input type="text"
 										   class="kbc-button"
 										   x-model="key_maps[curr_keymap][k]"
@@ -478,6 +742,43 @@
 						</template>
 						<button x-on:click="add_keymap_degree()" style="cursor: pointer; margin: 0.5em;" title="add keyboard key">+</button>
 					</div>
+				</div>
+			</div>
+			
+			<div style="margin-top: 1em;">
+				<span x-on:click="filter = toggleList (filter, 'inter_scale_ratios')"
+					  style="font-weight: bold; cursor: pointer;"
+					  :style="{color: filter.includes ('inter_scale_ratios') ? 'black' : 'gray'}">&#128065; Inter-scale ratios</span>
+				<div x-show="filter.includes ('inter_scale_ratios')" x-transition x-transition.duration.500ms >
+					<div style="display: flex;">
+						<template x-for="rows in getInterScaleRatios()">
+							<div style="margin-right: 1em; padding: 1em; background-color: #FAFAFA;" class="box">
+								<template x-for="ratio in rows">
+									<div style="margin-right: 1em; margin-top: 1em; line-height: 2em;">
+										<span style="padding: 0.5em; border-radius: 0.5em;" :style="{'background-color': colors[ratio.i2]}">f<sub x-html="ratio.i2 + 1"></sub></span> /
+										<span style="padding: 0.5em; border-radius: 0.5em;" :style="{'background-color': colors[ratio.i1]}">f<sub x-html="ratio.i1 + 1"></sub></span> =
+										<span style="padding: 0.5em; background-color: #CFCFCF; border-radius: 0.5em;" x-html="ratio.resolved"></span> &#8776;
+										<span style="padding: 0.5em; background-color: #CFCFCF; border-radius: 0.5em; font-family: monospace;" x-html="ratio.approx"></span>
+									</div>
+								</template>
+							</div>
+						</template>
+						<template x-if="getInterScaleRatios().length == 0">
+							<i>Select ( ~&#128065;) or play at leat 2 scale degrees</i>
+						</template>
+					</div>
+				</div>
+			</div>
+			
+			<div style="margin-top: 1em;">
+				<span x-on:click="filter = toggleList (filter, 'graph')"
+				  style="font-weight: bold; cursor: pointer;"
+				  :style="{color: filter.includes ('graph') ? 'black' : 'gray'}">&#128065; Graph</span>
+				<div x-show="filter.includes ('graph')"
+					 style="width: 90vw; height: 400px; margin: 0px auto; border: 1px solid black; padding: 0.5em; background-color: white;"
+					 class="shadow">
+					<input type="number" min="1" step="1" x-model="graph_periods"  x-on:change="updatePeriods()" style="width: 30px;" /> periods
+					<div id="graph" style="100%; height: 90%;"></div>
 				</div>
 			</div>
 		</div>
