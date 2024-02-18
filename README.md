@@ -31,3 +31,6 @@ Feel free to report bugs or feature requests in the issue section.
 - Calculation of all frequency ratios
 
 - Visualization of frequency ratios
+
+- Synthesizer
+  - Adjustable harmonics
