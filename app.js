@@ -96,24 +96,68 @@ function ScaleApp()
 			scale: 'major',
 			degree: 0,
 		},
+		tab: 'tuning', // or 'synth'
+		harmonics: 0,
+		reduction: 0.5,
 		
 		createOscillator: function() {
 			console.log ('create oscillator')
-			let oscillator = this.audioCtx.createOscillator();	
+			let oscillator = this.audioCtx.createOscillator();
 			oscillator.type = 'sine';
-			//oscillator.connect (this.volume);
 			
 			let envelope = this.audioCtx.createGain();
 			envelope.connect (this.audioCtx.destination);
 			oscillator.connect (envelope);
 			oscillator.envelope = envelope;
-			
-			
 			envelope.gain.setValueAtTime(0, 0);
-			//envelope.gain.setValueAtTime(0.1,  this.audioCtx.currentTime + 0.5);
 			envelope.starttime = this.audioCtx.currentTime + 0.3;
 			envelope.gain.linearRampToValueAtTime (this.volume, envelope.starttime);
+						
+			oscillator.harmonics = [];
+			let volume = this.volume;
+			// add harmonics
+			for (let h=0; h<this.harmonics; h++)
+			{
+				let harmonic = this.audioCtx.createOscillator();
+				harmonic.type = 'sine';
+				
+				let envelope = this.audioCtx.createGain();
+				envelope.connect (this.audioCtx.destination);
+				harmonic.connect (envelope);
+				harmonic.envelope = envelope;
+				envelope.gain.setValueAtTime(0, 0);
+				envelope.starttime = this.audioCtx.currentTime + 0.3;
+				
+				volume *= this.reduction;
+				envelope.gain.linearRampToValueAtTime (volume, envelope.starttime);
+				
+				oscillator.harmonics.push (harmonic);	
+			}
 			
+			oscillator.setFreq = (freq) => {
+				oscillator.frequency.value = freq;
+				for (let h=0; h < this.harmonics; h++)
+				{
+					oscillator.harmonics[h].frequency.value = freq * (  (h + 2) );
+					console.log (freq, `harmonic ${h + 1}`,  freq * ( (h + 2) ))
+				}
+			};
+			
+			oscillator.startAll = function() {
+				this.start();
+				for (let h of this.harmonics)
+				{
+					h.start();
+				}
+			};
+			
+			oscillator.stopAll = function() {
+				this.stop();
+				for (let h of this.harmonics)
+				{
+					h.stop();
+				}
+			};
 			
 			
 			return oscillator;
@@ -142,8 +186,8 @@ function ScaleApp()
 				let freq = this.getFreq (degree_adj);
 				if (freq)
 				{
-					this.oscillators[degree].frequency.value = (this.root * freq) * (2 ** octave);
-					this.oscillators[degree].start();
+					this.oscillators[degree].setFreq ( (this.root * freq) * (2 ** octave) );
+					this.oscillators[degree].startAll();
 					this.playing.push (degree);
 					
 					if ( ! this.graph_show_degrees.includes (degree) ) {
@@ -168,7 +212,7 @@ function ScaleApp()
 					//osc.disconnect (this.audioCtx.destination);
 					osc.envelope.gain.setValueAtTime (0, this.audioCtx.currentTime);
 					osc.envelope.disconnect (this.audioCtx.destination);
-					osc.stop();
+					osc.stopAll();
 					
 				}, 500);
 				
