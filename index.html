@@ -81,92 +81,97 @@
 			<span x-on:click="filter = toggleList (filter, 'scale')"
 				  style="font-weight: bold; cursor: pointer;"
 				  :style="{color: filter.includes ('scale') ? 'black' : 'gray'}">&#128065; Scale</span>
+			<span x-on:click="circle_view = !circle_view">&#x229B; circle view</span>
 			<div x-show="filter.includes ('scale')">
-				<div style="display: flex; width: 100%; flex-wrap: wrap; align-self: stretch; justify-content: stretch;">
+				<div style="display: flex; width: 100%; flex-wrap: wrap; align-self: stretch; justify-content: stretch;"
+					 :class="{circleview: circle_view}">
 					<template x-for="(note, n) in curr_notes" :key="n">
-						<div style="border: 1px solid black; margin: 0.5em; padding: 0.5em; width: 10%;"
-							 class="box shadow"
-							 :style="{
-								'animation': marker == n ? 'myAnim 1s ease-in-out 0s 1 normal forwards' : 'none',
-								'background-color': playing.map (p => Number (p) % curr_notes.length).includes (n) ? colors[n] : 'none'
-							 }">
-							<!--<div x-html="n"></div>
-							<div x-html="n % tunings[curr_tuning].notes.length"></div>
-							<div x-html="JSON.stringify ( playing.map (p => p % tunings[curr_tuning].notes.length))"></div>
-							<div x-html="JSON.stringify (playing.includes (n))"></div>
-							<div x-html="JSON.stringify (marker)"></div>-->
-							<div style="display: flex; justify-content: space-between;">
-								<div style="border: 1px solid black; padding: 0.5em;"
-									 :style="{'background-color': colors[n]}"
-									 x-html="n + 1"></div>
-								<i x-show="n > 0 && tunings.just_intonation.notes.map (n => math.evaluate (n)).includes ( math.evaluate (curr_notes[n] ?? '') )">pure</i>
-								<div style="display: flex; flex-wrap: nowrap; align-items: center; margin: 0; padding: 0;">
-									<div style="margin-right: 0.5em; cursor: pointer; height: fit-content;"
-										 :style="{'color': !graph_show_degrees.includes (n) ? '#A1A1A1' : 'black'}"
-										 x-on:click="toggleGrapShowDegree (n)"
-										 title="show/hide graph trace"> ~&#128065; </div> <!-- eye -->
-									<button x-on:click="curr_notes.splice (n, 1);" title="delete" style="font-family: monospace;" x-show="n > 0">&#215;</button>
-									<div>
-										<button x-on:click="dropdown.show = n"  style=" margin-left: 0.2em;" title="add scale degree">+</button>
-										<div style="position: absolute; padding: 1em; z-index: 999;" class="box shadowStrong" x-show="dropdown.show === n" x-on:click.outside="dropdown.show = null;">
-											Select preset
-											<div class="setting">
-												<span style="margin-right: 0.2em;">Tuning</span>
-												<select x-model="dropdown.tuning">
-													<template x-for="name in Object.keys ( filterObj (tunings, t => t[1].scalable) )">
-														<option x-html="name" ></option>
-													</template>
-													<option disabled>&#9472;&#9472;&#9472;&#9472;</option>
-													<template x-for="name in Object.keys ( filterObj (tunings, t => !t[1].scalable) )">
-														<option x-html="name" ></option>
-													</template>
-												</select>
-											</div>
-											<div class="setting">
-												<span style="margin-right: 0.2em;">Scale</span>
-												<select x-model="dropdown.scale">
-													<template x-for="name in Object.keys (scales)">
-														<option x-html="name"></option>
-													</template>
-												</select>
-											</div>
-											<div class="setting">
-												<span style="margin-right: 0.2em;">Degree</span>
-												<select x-model="dropdown.degree">
-													<template x-for="degree in Object.keys (scales[dropdown.scale])" :key="degree">
-														<option x-html="Number (degree) + 1" :value="degree"></option>
-													</template>
-												</select>
-											</div>
-											
-											<div style="display: flex; justify-content: end;">
-												<button x-on:click="dropdown.show = null">cancel</button>&nbsp;
-												<button x-on:click="add_scale_degree (n)">add</button>
+						<div :class="{circleitem: circle_view}">
+							<div style="border: 1px solid black; margin: 0.5em; padding: 0.5em; width: 10%;"
+								 class="box shadow"
+								 :class="{circleitemcore: circle_view}"
+								 :style="{
+									'animation': marker == n ? 'myAnim 1s ease-in-out 0s 1 normal forwards' : 'none',
+									'background-color': playing.map (p => Number (p) % curr_notes.length).includes (n) ? colors[n] : 'none'
+								 }">
+								<!--<div x-html="n"></div>
+								<div x-html="n % tunings[curr_tuning].notes.length"></div>
+								<div x-html="JSON.stringify ( playing.map (p => p % tunings[curr_tuning].notes.length))"></div>
+								<div x-html="JSON.stringify (playing.includes (n))"></div>
+								<div x-html="JSON.stringify (marker)"></div>-->
+								<div style="display: flex; justify-content: space-between;">
+									<div style="border: 1px solid black; padding: 0.5em;"
+										 :style="{'background-color': colors[n]}"
+										 x-html="n + 1"></div>
+									<i x-show="n > 0 && tunings.just_intonation.notes.map (n => math.evaluate (n)).includes ( math.evaluate (curr_notes[n] ?? '') )">pure</i>
+									<div style="display: flex; flex-wrap: nowrap; align-items: center; margin: 0; padding: 0;">
+										<div style="margin-right: 0.5em; cursor: pointer; height: fit-content;"
+											 :style="{'color': !graph_show_degrees.includes (n) ? '#A1A1A1' : 'black'}"
+											 x-on:click="toggleGrapShowDegree (n)"
+											 title="show/hide graph trace"> ~&#128065; </div> <!-- eye -->
+										<button x-on:click="curr_notes.splice (n, 1);" title="delete" style="font-family: monospace;" x-show="n > 0">&#215;</button>
+										<div>
+											<button x-on:click="dropdown.show = n"  style=" margin-left: 0.2em;" title="add scale degree">+</button>
+											<div style="position: absolute; padding: 1em; z-index: 999;" class="box shadowStrong" x-show="dropdown.show === n" x-on:click.outside="dropdown.show = null;">
+												Select preset
+												<div class="setting">
+													<span style="margin-right: 0.2em;">Tuning</span>
+													<select x-model="dropdown.tuning">
+														<template x-for="name in Object.keys ( filterObj (tunings, t => t[1].scalable) )">
+															<option x-html="name" ></option>
+														</template>
+														<option disabled>&#9472;&#9472;&#9472;&#9472;</option>
+														<template x-for="name in Object.keys ( filterObj (tunings, t => !t[1].scalable) )">
+															<option x-html="name" ></option>
+														</template>
+													</select>
+												</div>
+												<div class="setting">
+													<span style="margin-right: 0.2em;">Scale</span>
+													<select x-model="dropdown.scale">
+														<template x-for="name in Object.keys (scales)">
+															<option x-html="name"></option>
+														</template>
+													</select>
+												</div>
+												<div class="setting">
+													<span style="margin-right: 0.2em;">Degree</span>
+													<select x-model="dropdown.degree">
+														<template x-for="degree in Object.keys (scales[dropdown.scale])" :key="degree">
+															<option x-html="Number (degree) + 1" :value="degree"></option>
+														</template>
+													</select>
+												</div>
+												
+												<div style="display: flex; justify-content: end;">
+													<button x-on:click="dropdown.show = null">cancel</button>&nbsp;
+													<button x-on:click="add_scale_degree (n)">add</button>
+												</div>
 											</div>
 										</div>
 									</div>
 								</div>
-							</div>
-							<div style="display: flex;">
-								<span style="margin-right: 0.5em;">ratio</span>
-								<!--<input type="number"
-									   x-model="tunings[curr_tuning].notes[n]"
-									   step="0.01"
-									   :max="n < tunings[curr_tuning].notes.length ? tunings[curr_tuning].notes[n + 1]: 1"
-									   style="width: 50%;" />-->
+								<div style="display: flex;">
+									<span style="margin-right: 0.5em;">ratio</span>
+									<!--<input type="number"
+										   x-model="tunings[curr_tuning].notes[n]"
+										   step="0.01"
+										   :max="n < tunings[curr_tuning].notes.length ? tunings[curr_tuning].notes[n + 1]: 1"
+										   style="width: 50%;" />-->
 
-								<input type="text"
-									   x-model="curr_notes[n]"
-									   style="width: 80%; text-align: end;" :style="{'background-color': getFreq (n) == null ? 'red' : 'none'}" />
+									<input type="text"
+										   x-model="curr_notes[n]"
+										   style="width: 80%; text-align: end;" :style="{'background-color': getFreq (n) == null ? 'red' : 'none'}" />
+								</div>
+								<div style="display: flex; align-items: center; justify-content: space-between;">
+									<span style="width: 50%; cursor: help;" :title="`root &#215; ratio = ${formatFreq (n)}Hz`">freq</span>
+									<span style="font-family: monospace;" x-html="formatFreq (n)"></span> Hz
+								</div>
+								<!--<input type="text" x-model="key_maps[curr_keymap][n]" />-->
 							</div>
-							<div style="display: flex; align-items: center; justify-content: space-between;">
-								<span style="width: 50%; cursor: help;" :title="`root &#215; ratio = ${formatFreq (n)}Hz`">freq</span>
-								<span style="font-family: monospace;" x-html="formatFreq (n)"></span> Hz
-							</div>
-							<!--<input type="text" x-model="key_maps[curr_keymap][n]" />-->
 						</div>
 					</template>
-					<button x-on:click="dropdown.show = curr_notes.length - 1" style="cursor: pointer; margin: 0.5em;" title="add scale degree">+</button>
+					<button x-on:click="dropdown.show = curr_notes.length - 1" style="cursor: pointer; margin: 0.5em;" x-show="!circle_view" title="add scale degree">+</button>
 				</div>
 			</div>
 			

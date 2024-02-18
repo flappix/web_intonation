@@ -96,6 +96,7 @@ function ScaleApp()
 			scale: 'major',
 			degree: 0,
 		},
+		circle_view: false,
 		
 		createOscillator: function() {
 			console.log ('create oscillator')

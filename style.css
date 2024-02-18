@@ -91,3 +91,69 @@ button {
 .shadowStrong {
 	box-shadow: #505050 0px 20px 30px -10px;
 }
+
+.circleview {
+  position: relative;
+  --w: 50vmin;
+  width: var(--w);
+  height: var(--w);
+  display: flex;
+  --show: 2;
+  /* put to the number you want to have */
+  --num: 6;
+  --angle: calc(360 / var(--num));
+  /* put to the angle between them */
+  
+  //transform: rotate(calc(((var(--show) + 1) / 2 * var(--angle)) * -1deg));
+}
+
+.circleitem {
+  width: calc(var(--w) / 6);
+  /* set to whatever width you want */
+  height: 30%;
+  top: -0;
+  left: 0;
+  transform-origin: 200% 50%;
+  transform: rotate(calc(360deg * var(--n) / var(--num)));
+  position: absolute;
+}
+.circleitemcore {
+  transform-origin: center center;
+  transform: rotate(calc(360deg * var(--n) / var(--num)));
+}
+
+.circleitem>* {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+.circleitem:nth-child(1) {
+  --n: 1;
+}
+
+.circleitem:nth-child(2) {
+  --n: 2;
+}
+
+.circleitem:nth-child(3) {
+  --n: 3;
+}
+
+.circleitem:nth-child(4) {
+  --n: 4;
+}
+
+.circleitem:nth-child(5) {
+  --n: 5;
+}
+.circleitem:nth-child(6) {
+  --n: 6;
+}
+.circleitem:nth-child(7) {
+  --n: 7;
+}
+.circleitem:nth-child(8) {
+  --n: 7;
+}
