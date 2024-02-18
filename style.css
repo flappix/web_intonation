@@ -69,6 +69,7 @@ button {
 	padding: 0.5em;
 	bottom: -2px;
 	position: relative;
+	cursor: pointer;
 }
 
 .setting

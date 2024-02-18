@@ -139,7 +139,6 @@ function ScaleApp()
 				for (let h=0; h < this.harmonics; h++)
 				{
 					oscillator.harmonics[h].frequency.value = freq * (  (h + 2) );
-					console.log (freq, `harmonic ${h + 1}`,  freq * ( (h + 2) ))
 				}
 			};
 			
