@@ -104,7 +104,7 @@
 							 'rgba(204, 235, 197, 1)',
 							 'rgba(255, 237, 111, 1)',
 							 '#8E8E00'],
-					filter: ['scale', 'keyboard', 'graph', 'inter_scale_ratios'],
+					filter: ['scale', 'keyboard', 'graph', /*'inter_scale_ratios'*/],
 					dropdown: {
 						show: null,
 						tuning: 'just_intonation',
@@ -350,7 +350,7 @@
 					getInterScaleRatios: function() {
 						let result  = [];
 						
-						let playing = Array.from ( new Set ([...this.playing.map (d => d % this.curr_notes.length), ...this.graph_show_degrees.map (d => d % this.curr_notes.length )]) );
+						let playing = this.graph_show_degrees.map (d => d % this.curr_notes.length );
 						playing.sort();
 						for (let p=0; p < playing.length - 1; p++)
 						{
@@ -749,7 +749,7 @@
 				<span x-on:click="filter = toggleList (filter, 'inter_scale_ratios')"
 					  style="font-weight: bold; cursor: pointer;"
 					  :style="{color: filter.includes ('inter_scale_ratios') ? 'black' : 'gray'}">&#128065; Inter-scale ratios</span>
-				<div x-show="filter.includes ('inter_scale_ratios')" x-transition x-transition.duration.500ms >
+				<template x-if="filter.includes ('inter_scale_ratios')" x-transition x-transition.duration.500ms >
 					<div style="display: flex;">
 						<template x-for="rows in getInterScaleRatios()">
 							<div style="margin-right: 1em; padding: 1em; background-color: #FAFAFA;" class="box">
@@ -767,7 +767,7 @@
 							<i>Select ( ~&#128065;) or play at leat 2 scale degrees</i>
 						</template>
 					</div>
-				</div>
+				</template>
 			</div>
 			
 			<div style="margin-top: 1em;">
