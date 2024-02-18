@@ -119,7 +119,7 @@
 								<div style="border: 1px solid black; padding: 0.5em;"
 									 :style="{'background-color': colors[n]}"
 									 x-html="n + 1"></div>
-								<i x-show="n > 0 && tunings.just_intonation.notes.map (n => math.evaluate (n)).includes ( math.evaluate (curr_notes[n] ?? '') )">pure</i>
+								<i x-show="n > 0 && isPure (n)">pure</i>
 								<div style="display: flex; flex-wrap: nowrap; align-items: center; margin: 0; padding: 0;">
 									<div style="margin-right: 0.5em; cursor: pointer; height: fit-content;"
 										 :style="{'color': !graph_show_degrees.includes (n) ? '#A1A1A1' : 'black'}"

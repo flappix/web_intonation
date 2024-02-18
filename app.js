@@ -14,6 +14,7 @@ function ScaleApp()
 			//this.volume.gain.value = 0.01;
 			
 			this.curr_notes = this.createFromTemplate (this.curr_tuning, this.curr_scale);
+			this.pureIntervals = this.tunings.just_intonation.notes.map (n => math.simplify (n).toString() );
 			
 			this.initPlot();
 		},
@@ -101,7 +102,6 @@ function ScaleApp()
 		reduction: 0.5,
 		
 		createOscillator: function() {
-			console.log ('create oscillator')
 			let oscillator = this.audioCtx.createOscillator();
 			oscillator.type = 'sine';
 			
@@ -256,6 +256,19 @@ function ScaleApp()
 			}
 		},
 		
+		isPure: function (degree) {
+			try
+			{
+				return this.pureIntervals.filter ( (pi) => {
+					let r  = math.evaluate (`${this.curr_notes[degree] ?? ''} / ${pi}` );
+					return r == Math.floor (r);
+				});
+			}
+			catch (err) {
+				return '';
+			}
+		},
+		
 		root: 440,
 		curr_tuning: 'just_intonation',
 		tunings: {					
@@ -318,7 +331,6 @@ function ScaleApp()
 			}
 
 			let myscale = this.scales[scale].slice (0, notes.length);
-			//return Alpine.$persist ( myscale.map (n => {console.log (n, notes[n - 1]); return notes[n - 1];}) );
 			this.graph_show_degrees = [0];
 			this.initPlot();
 			return myscale.map (n => notes[n - 1]);
@@ -395,7 +407,6 @@ function ScaleApp()
 				for (let pp = p + 1; pp < playing.length; pp++)
 				{								
 					let expr = `( ${this.curr_notes[playing[pp]]}) / ( ${this.curr_notes[playing[p]]})`;
-					console.log (expr);
 					rows.push ({i1: playing[p], i2: playing[pp], resolved: math.simplify (expr) , approx: math.evaluate (expr).toFixed(2)});
 				}
 				
