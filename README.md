@@ -34,3 +34,5 @@ Feel free to report bugs or feature requests in the issue section.
 
 - Synthesizer
   - Adjustable harmonics
+
+- Experimental: play midi files
