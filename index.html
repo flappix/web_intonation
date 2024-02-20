@@ -133,8 +133,8 @@
 							Tempo <input type="range" min="0.1" max="5" step="0.1" x-model="midi.tempo" /> &#215; <span x-html="midi.tempo"></span>
 						</div>
 						
-						<button x-on:click="midi_play()" :disabled="!midi.loaded" x-show="midi.scheduledNotes.length == 0" style="margin: 1em;">play</button>
-						<button x-on:click="midi_stop()" :disabled="!midi.loaded" style="margin: 1em;" x-show="midi.scheduledNotes.length > 0">stop</button>
+						<button x-on:click="midi_play()" :disabled="!midi.loaded" x-show="midi.scheduledNotes.length == 0" style="margin: 1em;">&#9658; play</button>
+						<button x-on:click="midi_stop()" :disabled="!midi.loaded" style="margin: 1em;" x-show="midi.scheduledNotes.length > 0">&#9209;  stop</button>
 						
 						<div x-show="curr_notes.length != 12" style="color: #BE4747;">
 							<u>Warning</u>: You current system does not have 12 scale degrees. This will lead to unexpected results in playback. Set scale to <i>chromatic</i> in <i>Tuning</i>-tab.

@@ -611,6 +611,12 @@ function ScaleApp()
 						setTimeout ( () => {
 							console.log ('stop note', n);
 							this.stopNote (n);
+							
+							console.log ('lastNote', track.notes.indexOf (note) == track.notes.length - 1,track.notes.indexOf (note) );
+							if ( track.notes.indexOf (note) == track.notes.length - 1 )
+							{
+								this.midi.scheduledNotes = [];
+							}
 						}, (note.durationTicks * 1/this.midi.tempo) - 350 );
 					}, note.ticks * 1/this.midi.tempo ) );
 				});
