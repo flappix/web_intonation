@@ -2,9 +2,15 @@
 function filterObj (obj, func) {
 	return Object.fromEntries ( Object.entries (obj).filter (func) );
 }
+
+function mod(n, m) {
+	return ((n % m) + m) % m;
+}
 	  
 function ScaleApp()
 {
+	const octave_multi = 8;
+	
 	return {
 		init: function()
 		{
@@ -17,6 +23,8 @@ function ScaleApp()
 			this.pureIntervals = this.tunings.just_intonation.notes.map (n => math.simplify (n).toString() );
 			
 			this.initPlot();
+			
+			this.midi.scaleNotes = 'C, C#/Db, D, D#/Eb, E, F, F#/Gb, G, G#/Ab, A, A#/Bb, B'.split (',').map ( x => x.trim() );
 		},
 		initPlot: function()
 		{
@@ -69,6 +77,7 @@ function ScaleApp()
 			});
 		},
 		
+		oscillatorStore: [],
 		oscillators: {},
 		playing: [], // currently active notes
 		volume: 0.01,
@@ -110,7 +119,8 @@ function ScaleApp()
 			oscillator.connect (envelope);
 			oscillator.envelope = envelope;
 			envelope.gain.setValueAtTime(0, 0);
-			envelope.starttime = this.audioCtx.currentTime + 0.3;
+			//envelope.starttime = this.audioCtx.currentTime + 0.3;
+			envelope.starttime = this.audioCtx.currentTime + 0;
 			envelope.gain.linearRampToValueAtTime (this.volume, envelope.starttime);
 						
 			oscillator.harmonics = [];
@@ -181,8 +191,9 @@ function ScaleApp()
 		
 		getOctave: function (degree) {
 			let len = Object.values (this.curr_notes).length;
+			console.log ('len', len);
 			// transform octaves
-			let degree_adj = degree %  len;
+			let degree_adj = mod (degree,  len);
 			let octave = Math.floor (degree / len);
 			return [degree_adj, octave];
 		},
@@ -197,12 +208,13 @@ function ScaleApp()
 				
 				// transform octaves
 				const [degree_adj, octave] = this.getOctave (degree);
+				console.log ('play', degree, degree_adj, octave);
 				
 				// evaluate math expr to frequency
 				let freq = this.getFreq (degree_adj);
 				if (freq)
 				{
-					this.oscillators[degree].setFreq ( (this.root * freq) * (2 ** octave) );
+					this.oscillators[degree].setFreq ( (this.root.freq * freq) * (2 ** octave) );
 					this.oscillators[degree].startAll();
 					this.playing.push (degree);
 					
@@ -245,7 +257,7 @@ function ScaleApp()
 			}
 		},
 		formatFreq: function (freq) {
-			return parseFloat ( String (this.root * this.getFreq (freq) ) ).toFixed(2);
+			return parseFloat ( String (this.root.freq * this.getFreq (freq) ) ).toFixed(2);
 		},
 		
 		stopAll: function()
@@ -259,13 +271,8 @@ function ScaleApp()
 		isPure: function (degree) {
 			try
 			{
-				console.log ('crn', this.curr_notes[degree]);
 				return this.pureIntervals.filter ( (pi) => {
 					let r  = math.evaluate (`( ${this.curr_notes[degree] ?? ''} ) / ( ${pi} )` );
-					console.log (pi);
-					console.log (this.curr_notes[degree] ?? '');
-					console.log (r);
-					console.log ('----');
 					return r == Math.floor (r);
 				}).length > 0;
 			}
@@ -274,7 +281,10 @@ function ScaleApp()
 			}
 		},
 		
-		root: 440,
+		root: {
+			freq: 55 * octave_multi,
+			note: 'A'
+		},
 		curr_tuning: 'just_intonation',
 		tunings: {					
 			just_intonation: {
@@ -301,9 +311,10 @@ function ScaleApp()
 				notes: ['1', '5/16 * nthRoot(5^3, 4)', '1/2 * sqrt(5)', '4/5 * nthRoot(5,4)', '1 + 1/4', '2/5 * nthRoot(5^3,4)', '5/8 * sqrt(5)', 'nthRoot(5,4)', '25/16', '1/2 * nthRoot(5^3,4)', '4/5 * sqrt(5)', '5/4 * nthRoot(5,4)']
 			},
 			
+			
 			harmonic_series: {
 				type: 'relative',
-				notes: ['1', '1 + 1/7', '1 + 1/6', '1 + 1/5', '1 + 1/4', '1 + 1/3', '1 + 1/2', '1 + 2/3', '1 + 3/4', '1 + 4/5', '1 + 5/6', '1 + 6/7']
+				notes: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
 			},
 			
 			custom_equal_scale: {
@@ -318,7 +329,7 @@ function ScaleApp()
 			},
 		},
 		
-		curr_scale: 'major',
+		curr_scale: 'chromatic',
 		scales: {
 			'major': [1, 3, 5, 6, 8, 10, 12],
 			'natural minor': [1, 3, 4, 6, 8, 9, 11],
@@ -383,10 +394,10 @@ function ScaleApp()
 				
 			},
 			chords: {
-				0:'a,f,h' ,
-				1:'s,g,j' ,
-				2:'a,d,h' ,
-				3:'s,f,j' ,
+				0:'a,f2,h2' ,
+				1:'s,g2,j' ,
+				2:'a,d,h2' ,
+				3:'s,f,j2' ,
 				4:'a,d,g' ,
 				5:'s,f,h' ,
 				6:'j,d,g' ,
@@ -404,15 +415,18 @@ function ScaleApp()
 		getInterScaleRatios: function() {
 			let result  = [];
 			
-			let playing = this.graph_show_degrees.map (d => d % this.curr_notes.length );
+			let playing = this.graph_show_degrees.map (d => mod (d, this.curr_notes.length) );
 			playing.sort();
 			for (let p=0; p < playing.length - 1; p++)
 			{
 				let rows = [];
 				for (let pp = p + 1; pp < playing.length; pp++)
-				{								
-					let expr = `( ${this.curr_notes[playing[pp]]}) / ( ${this.curr_notes[playing[p]]})`;
-					rows.push ({i1: playing[p], i2: playing[pp], resolved: math.simplify (expr) , approx: math.evaluate (expr).toFixed(2)});
+				{	
+					try {							
+						let expr = `( ${this.curr_notes[playing[pp]]}) / ( ${this.curr_notes[playing[p]]})`;
+						rows.push ({i1: playing[p], i2: playing[pp], resolved: math.simplify (expr) , approx: math.evaluate (expr).toFixed(2)});
+					}
+					catch (err) {}
 				}
 				
 				result.push (rows);
@@ -420,11 +434,6 @@ function ScaleApp()
 
 			return result;
 		
-		},
-		
-		get_note_by_key: function (keyChar)
-		{
-			return Object.keys (this.key_maps[this.curr_keymap]).filter (key => this.key_maps[this.curr_keymap][key].split (',').includes (keyChar) );//.map ( k => this.scales[this.curr_scale][k] - 1 );
 		},
 		
 		updatePlot: function (degree, octave) {
@@ -471,12 +480,40 @@ function ScaleApp()
 			}
 		},
 		
+		get_note_by_key: function (keyChar)
+		{
+			let result = [];
+			for  ( let k of Object.keys (this.key_maps[this.curr_keymap]) )
+			{
+				for ( let key of this.key_maps[this.curr_keymap][k].split (',') )
+				{
+					if (key.length == 1 && key == keyChar)
+					{
+						result.push ({note: parseInt (k), octave: 0});
+					}
+					
+					else if (key.length > 1 && key[0] == keyChar)
+					{
+						let octave;
+						try {
+							octave = parseInt (key[1]);
+						}
+						catch (err) {}
+						
+						result.push ({note: parseInt (k), octave: octave - 1});
+					}
+				}
+			}
+			
+			return result;
+		},
+		
 		key_check_on: function (event)
 		{
 			let notes = this.get_note_by_key (event.key);
 			for (let note of notes)
 			{
-				this.playNote (note);
+				this.playNote ( note.note + (this.curr_notes.length * note.octave) );
 			}
 		},
 		
@@ -486,10 +523,99 @@ function ScaleApp()
 			let notes = this.get_note_by_key (event.key);
 			for (let note of notes)
 			{
-				this.stopNote (note);
+				this.stopNote ( note.note + (this.curr_notes.length * note.octave) );
 			}
-		}
-	};
+		},
+		
+		midi: {
+			tempo: 1,
+			loaded: false,
+			player: null,
+			error: null,
+			root: 'A',
+		},
+		
+		note2freqMap: {
+			'G#/Ab':	103.826 * octave_multi,
+			'G':		97.9989 * octave_multi,
+			'F#/Gb':	92.4986 * octave_multi,
+			'F':		87.3071 * octave_multi,
+			'E':		82.4069 * octave_multi,
+			'D#/Eb':	77.7817 * octave_multi,
+			'D':		73.4162 * octave_multi,
+			'C#/Db':	69.2957 * octave_multi,
+			'C':		65.4064 * octave_multi,
+			'B':		61.7354 * octave_multi,
+			'A#/Bb':	58.2705 * octave_multi,
+			'A':		55 * octave_multi
+		},
+		
+		readMidiFile: function (evt) {
+			if (evt.files && evt.files[0]) {
+				var myFile = evt.files[0];
+				var reader = new FileReader();
+
+				reader.addEventListener('load', (e) => {
+					try {
+						this.midi.player = new Midi (e.target.result);
+						
+						// detect key signature
+						if ( this.midi.player.header?.keySignatures != null && this.midi.player.header.keySignatures.length > 0 )
+						{
+							this.midi.root = this.midi.player.header.keySignatures[0].key;
+							this.root.note = this.midi.root;
+							this.root.freq = this.note2freqMap[this.root.note];
+							
+							this.calcNoteOffset();
+						}
+						
+						this.midi.loaded = true;
+						this.midi.error = null;
+					}
+					catch (err) {
+						this.midi.loaded = false;
+						this.midi.error = err;
+					}
+				});
+
+				reader.readAsArrayBuffer (myFile);
+			}   
+		},
+		
+		calcNoteOffset: function() {
+			// first midi note is A 21
+			this.midi.note_offset = this.midi.scaleNotes.indexOf (this.midi.root);
+			console.log (this.midi.note_offset);
+		},
+		
+		midi_play: async function ()
+		{
+			//this.curr_scale = 'chromatic';
+			//this.curr_notes = this.createFromTemplate (this.curr_tuning, this.curr_scale);
+			
+			this.midi.player.tracks.forEach ( track => {
+				const notes = track.notes;
+				notes.forEach ( note => {
+					setTimeout ( () => {
+						console.log ('raw midi note', note.midi);
+						// TODO: understand do why we need - 69 + 12 -3 ?
+						let octave = Math.floor ( (note.midi - 69 + 12 - 3) / this.curr_notes.length);
+						let degree = mod (note.midi - 69 + 12 - 3, this.curr_notes.length);
+						let n = degree + (octave * this.curr_notes.length) - this.midi.note_offset;
+						console.log ('degree', degree);
+						console.log ('note', n);
+						
+						this.playNote (n);
+						setTimeout ( () => {
+							console.log ('stop note', n);
+							this.stopNote (n);
+						}, (note.durationTicks * 1/this.midi.tempo) - 350 );
+						//}, 200 );
+					}, note.ticks * 1/this.midi.tempo );
+				});
+			});
+		},			
+	}
 }
 
 

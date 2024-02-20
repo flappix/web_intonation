@@ -7,6 +7,8 @@
 		<link rel="stylesheet" href="https://unpkg.com/keyboard-css@1.2.4/dist/css/main.min.css" />
 		<script src="https://cdn.jsdelivr.net/npm/mathjs@12.3.0/lib/browser/math.min.js"></script>
 		<script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
+		<script src="https://unpkg.com/@tonejs/midi"></script>
+
 		
 		<meta name="description" content="Free online simulator for hearing and developing musical tunings, temperaments and tunings" />
 		<meta property="og:type" content="website" />
@@ -27,6 +29,7 @@
 				<div style="display: flex; margin-bottom: 0px; margin-left: 0.5em; position: relative;">
 					<div class="tab" :style="{'z-index': tab == 'tuning' ? 2 : 0, 'background-color': tab == 'tuning' ? 'white' : '#F0F0F0'}" x-on:click="tab = 'tuning'">Tuning</div>
 					<div class="tab" :style="{'z-index': tab == 'synth' ? 2 : 0, 'background-color': tab == 'synth' ? 'white' : '#F0F0F0'}" x-on:click="tab = 'synth'">Synthesizer</div>
+					<div class="tab" :style="{'z-index': tab == 'midi' ? 2 : 0, 'background-color': tab == 'midi' ? 'white' : '#F0F0F0'}" x-on:click="tab = 'midi'">Midi (<i>experimental</i>)</div>
 				</div>
 				<div style="border: 1px solid black; padding: 0.5em; margin: 0.5em; margin-top: 0; z-index: 1; position: relative; border-radius: 0 0.5em 0.5em 0.5em;" class="box" x-show="tab == 'tuning'">
 					<div style="display: flex; align-items: center;">
@@ -46,18 +49,25 @@
 							<span style="margin-right: 0.2em;">Scale</span>
 							<select x-model="curr_scale" x-on:change="curr_notes = createFromTemplate (curr_tuning, curr_scale)">
 								<template x-for="name in Object.keys (scales)">
-									<option x-html="name" :disabled="!tunings[curr_tuning].scalable && name != 'chromatic'"></option>
+									<option x-html="name" :disabled="!tunings[curr_tuning].scalable && name != 'chromatic'" :selected="name == 'chromatic'"></option>
 								</template>
 							</select>
 						</div>
 						
 						<div class="setting">
-							<span style="margin-right: 0.2em;">Root</span>
-							<input type="number" x-model="root" style="width: 4em; margin-right: 0.2em;" /> Hz
+							Root &nbsp;
+							<select x-model="root.note" x-on:change="root.freq = note2freqMap[root.note];">
+								<template x-for="key in midi.scaleNotes">
+									<option x-html="key"  :selected="key == root.note"></option>
+								</template>
+								<option x-html="''"></option>
+							</select>
+							<input type="number" x-model="root.freq" style="width: 4em; margin-right: 0.2em;" x-on:change="root.note = Object.keys (note2freqMap).find (key => note2freqMap[key] == root.freq) ?? ''" /> Hz
 						</div>
 						
 						<div class="setting">
 							<span style="margin-right: 0.2em;">Keyboard</span>
+							
 							<select x-model="curr_keymap">
 								<template x-for="name in Object.keys (key_maps)">
 									<option x-html="name"></option>
@@ -77,7 +87,7 @@
 					<button x-on:click="curr_notes = createFromTemplate (curr_tuning, curr_scale)" style="margin-left: 0.5em;">reset</button>
 					<button x-on:click="curr_notes = [1]" style="margin-left: 0.5em;">clear</button>
 				</div>
-				<div style="border: 1px solid black; padding: 0.5em; margin: 0.5em; margin-top: 0; z-index: 1; position: relative; border-radius: 0 0.5em 0.5em 0.5em;" class="box" x-show="tab == 'synth'">
+				<div style="border: 1px solid black; padding: 0.5em; margin: 0.5em; margin-top: 0; z-index: 1; position: relative; border-radius: 0 0.5em 0.5em 0.5em; display: none;" class="box" x-show="tab == 'synth'">
 					<div style="display: flex;">
 						<div class="setting">
 							<span style="margin-right: 0.2em;">Harmonics</span>
@@ -88,6 +98,47 @@
 							<span style="margin-right: 0.2em; cursor: help;" title="Volume of the n-th harmonic = (this facor ^ n) * master volume. For a realistic sound set this value between 0 and 1.">Harmonics volume reduction</span>
 							<input type="number" x-model="reduction" step="0.1" style="width: 3em;" />
 						</div>
+					</div>
+				</div>
+				<div style="border: 1px solid black; padding: 0.5em; margin: 0.5em; margin-top: 0; z-index: 1; position: relative; border-radius: 0 0.5em 0.5em 0.5em; display: none;" class="box" x-show="tab == 'midi'">
+					<div style="display: flex; align-items: center;">
+						<div class="setting">
+							<input type="file" x-on:change="readMidiFile ($el)" style="border: 1px solid black; border-radius: 0.5em; margin: 1em;" />
+							<span x-show="midi.error != null" x-html="midi.error" style="color: red; margin: 1em;"></span>
+						</div>
+						
+						<div class="setting">
+							<span style="cursor: help;" title="Make sure this settings matches the root note of the key signature in your midi file. E.g. if your piece is in C major set this setting to C. If your piece is in D minor set this setting to D. Multiple key signatures in one midi file is currently not supported.">
+								Root&nbsp;
+							</span>
+							<select x-model="midi.root" x-on:change="calcNoteOffset(); root.note = midi.root; root.freq = note2freqMap[root.note];">
+								<template x-for="key in midi.scaleNotes">
+									<option x-html="key" :selected="key == midi.root"></option>
+								</template>
+							</select>
+						</div>
+						
+						<div class="setting">
+							Reference freq&nbsp;
+							<select x-model="root.note" x-on:change="root.freq = note2freqMap[root.note];">
+								<template x-for="key in midi.scaleNotes">
+									<option x-html="key"  :selected="key == root.note"></option>
+								</template>
+								<option x-html="''"></option>
+							</select>
+							<input type="number" x-model="root.freq" style="width: 4em; margin-right: 0.2em;" x-on:change="root.note = Object.keys (note2freqMap).find (key => note2freqMap[key] == root.freq) ?? ''" /> Hz
+						</div>
+						
+						<div class="setting">
+							Tempo <input type="range" min="0.1" max="5" step="0.1" x-model="midi.tempo" /> &#215; <span x-html="midi.tempo"></span>
+						</div>
+						
+						<button x-on:click="midi_play()" :disabled="!midi.loaded" style="margin: 1em;">play</button>
+						
+						<div x-show="curr_notes.length != 12" style="color: #BE4747;">
+							<u>Warning</u>: You current system does not have 12 scale degrees. This will lead to unexpected results in playback. Set scale to <i>chromatic</i> in <i>Tuning</i>-tab.
+						</div>
+						
 					</div>
 				</div>
 			</div>
@@ -108,7 +159,7 @@
 							 class="box shadow"
 							 :style="{
 								'animation': marker == n ? 'myAnim 1s ease-in-out 0s 1 normal forwards' : 'none',
-								'background-color': playing.map (p => Number (p) % curr_notes.length).includes (n) ? colors[n] : 'none'
+								'background-color': playing.map (p => mod ( Number (p), curr_notes.length ) ).includes (n) ? colors[n] : 'none'
 							 }">
 							<!--<div x-html="n"></div>
 							<div x-html="n % tunings[curr_tuning].notes.length"></div>
@@ -226,9 +277,9 @@
 						<template x-for="(key, k) in key_maps[curr_keymap]">
 							<div style="border: 1px solid black; margin: 0.5em; padding: 0.5em; width: 10%;"
 								 class="box shadow"
-								 :style="{'background-color': playing.map (p => Number (p)).includes ( Number (k) ) ? colors[k % curr_notes.length] : 'none'}">
+								 :style="{'background-color': playing.map (p => Number (p)).includes ( Number (k) ) ? colors[mod (k, curr_notes.length)] : 'none'}">
 								<div style="display: flex; justify-content: space-between;">
-									<div style="border: 1px solid black; padding: 5px; margin-bottom: 5px;" :style="{'background-color': colors[k % curr_notes.length]}" x-html="parseInt (k) + 1"></div>
+									<div style="border: 1px solid black; padding: 5px; margin-bottom: 5px;" :style="{'background-color': colors[mod (k, curr_notes.length)]}" x-html="parseInt (k) + 1"></div>
 									<input type="text"
 										   class="kbc-button"
 										   x-model="key_maps[curr_keymap][k]"
