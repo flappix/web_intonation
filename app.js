@@ -65,8 +65,8 @@ function ScaleApp()
 			for (let d=0; d < this.graph_show_degrees.length; d++) {
 				let degree = this.graph_show_degrees[d];
 				const [degree_adj, octave] = this.getOctave (degree);
-				Plotly.deleteTraces ('graph', 0);
-				this.updatePlot (degree_adj, octave);
+				this.deletePlotTrace (0);
+				this.addPlotTrace (degree_adj, octave);
 			}
 			
 			Plotly.relayout ('graph', {
@@ -218,8 +218,8 @@ function ScaleApp()
 					this.oscillators[degree].startAll();
 					this.playing.push (degree);
 					
-					if ( ! this.graph_show_degrees.includes (degree) ) {
-						this.updatePlot (degree_adj, octave);
+					if ( this.filter.includes ('graph') && ! this.graph_show_degrees.includes (degree) ) {
+						this.addPlotTrace (degree_adj, octave);
 					}
 				}
 			}
@@ -240,7 +240,7 @@ function ScaleApp()
 				
 				if ( ! this.graph_show_degrees.includes (degree) )
 				{
-					Plotly.deleteTraces ( 'graph', this.playing.indexOf (degree) );
+					this.deletePlotTrace ( this.playing.indexOf (degree) );
 				}
 			}
 		},
@@ -436,31 +436,43 @@ function ScaleApp()
 		
 		},
 		
-		updatePlot: function (degree, octave) {
-			// calculate needed resolution
-			// TODO: higher resolution for higher octaves
-			let x = [];
-			for (let i=0; i<Math.PI * (this.graph_periods); i += 1 / (100 / Math.PI * (this.graph_periods) ) )
-			{
-				x.push (i);
-			}
+		addPlotTrace: function (degree, octave) {
+			// this is slow, use setTimeout to dont block the main thread
+			setTimeout ( () => {
+				// calculate needed resolution
+				// TODO: higher resolution for higher octaves
+				let x = [];
+				for (let i=0; i<Math.PI * (this.graph_periods); i += 1 / (100 / Math.PI * (this.graph_periods) ) )
+				{
+					x.push (i);
+				}
+				
+				let octave_adj = octave < 0 ? 1 / -(octave - 1) : octave + 1;
 			
-			let octave_adj = octave < 0 ? 1 / -(octave - 1) : octave + 1;
-		
-			let trace = {
-				x: x,
-				y: x.map ( x =>  {
-					return Math.sin ( math.evaluate ( `(${String (this.curr_notes[degree])}) * ${octave, octave_adj} * 2 * ${x}` ) );
-				}),
-				type: 'scatter',
-				line: {
-					shape: 'spline',
-					color: this.colors[degree],
-				},
-				name: (degree + 1) + (octave * this.curr_notes.length)         
-			};
+				let trace = {
+					x: x,
+					y: x.map ( x =>  {
+						return Math.sin ( math.evaluate ( `(${String (this.curr_notes[degree])}) * ${octave, octave_adj} * 2 * ${x}` ) );
+					}),
+					type: 'scatter',
+					line: {
+						shape: 'spline',
+						color: this.colors[degree],
+					},
+					name: (degree + 1) + (octave * this.curr_notes.length)         
+				};
 
-			Plotly.addTraces ('graph', trace);
+				Plotly.addTraces ('graph', trace);
+			}, 0);
+		},
+		
+		deletePlotTrace: function (degree) {
+			setTimeout ( () => {
+				try {
+					Plotly.deleteTraces ( 'graph', degree);
+				}
+				catch (err) {}
+			}, 0 );
 		},
 		
 		toggleList: function (list, item) {
@@ -474,14 +486,14 @@ function ScaleApp()
 		},
 		toggleGrapShowDegree: function (degree) {
 			if ( this.graph_show_degrees.includes (degree) ) {
-				Plotly.deleteTraces ( 'graph', this.graph_show_degrees.indexOf (degree) );
+				this.deletePlotTrace ( this.graph_show_degrees.indexOf (degree) );
 				this.graph_show_degrees = this.graph_show_degrees.filter (d => d != degree);
 				
 			}
 			else {
 				this.graph_show_degrees.push (degree);
 				const [degree_adj, octave] = this.getOctave (degree);
-				this.updatePlot (degree_adj, octave);
+				this.addPlotTrace (degree_adj, octave);
 			}
 		},
 		
