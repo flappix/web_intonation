@@ -438,15 +438,20 @@ function ScaleApp()
 		
 		updatePlot: function (degree, octave) {
 			// calculate needed resolution
+			// TODO: higher resolution for higher octaves
 			let x = [];
 			for (let i=0; i<Math.PI * (this.graph_periods); i += 1 / (100 / Math.PI * (this.graph_periods) ) )
 			{
 				x.push (i);
 			}
 			
+			let octave_adj = octave < 0 ? 1 / -(octave - 1) : octave + 1;
+		
 			let trace = {
 				x: x,
-				y: x.map ( x =>  Math.sin ( math.evaluate ( String (this.curr_notes[degree] ) ) * (octave + 1) * x * 2 ) ),
+				y: x.map ( x =>  {
+					return Math.sin ( math.evaluate ( `(${String (this.curr_notes[degree])}) * ${octave, octave_adj} * 2 * ${x}` ) );
+				}),
 				type: 'scatter',
 				line: {
 					shape: 'spline',
