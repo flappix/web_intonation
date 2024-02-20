@@ -20,7 +20,7 @@ Feel free to report bugs or feature requests in the issue section.
   - major
   - natural minor
   - harmonic minor
-  - chroamtic
+  - chromatic
 
 - Each tuning system/ scale can be freely extended / replaced with your own custom intervals
 
