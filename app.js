@@ -533,6 +533,7 @@ function ScaleApp()
 			player: null,
 			error: null,
 			root: 'A',
+			scheduledNotes: [],
 		},
 		
 		note2freqMap: {
@@ -596,7 +597,8 @@ function ScaleApp()
 			this.midi.player.tracks.forEach ( track => {
 				const notes = track.notes;
 				notes.forEach ( note => {
-					setTimeout ( () => {
+					
+					this.midi.scheduledNotes.push ( setTimeout ( () => {
 						console.log ('raw midi note', note.midi);
 						// TODO: understand do why we need - 69 + 12 -3 ?
 						let octave = Math.floor ( (note.midi - 69 + 12 - 3) / this.curr_notes.length);
@@ -604,17 +606,22 @@ function ScaleApp()
 						let n = degree + (octave * this.curr_notes.length) - this.midi.note_offset;
 						console.log ('degree', degree);
 						console.log ('note', n);
-						
+
 						this.playNote (n);
 						setTimeout ( () => {
 							console.log ('stop note', n);
 							this.stopNote (n);
 						}, (note.durationTicks * 1/this.midi.tempo) - 350 );
-						//}, 200 );
-					}, note.ticks * 1/this.midi.tempo );
+					}, note.ticks * 1/this.midi.tempo ) );
 				});
 			});
-		},			
+		},
+		
+		midi_stop: function() {
+			this.midi.scheduledNotes.forEach ( n => clearTimeout (n) );
+			this.midi.scheduledNotes = [];
+			this.stopAll();
+		}		
 	}
 }
 
