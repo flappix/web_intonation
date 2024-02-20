@@ -109,7 +109,7 @@
 						
 						<div class="setting">
 							<span style="cursor: help;" title="Make sure this settings matches the root note of the key signature in your midi file. E.g. if your piece is in C major set this setting to C. If your piece is in D minor set this setting to D. Multiple key signatures in one midi file is currently not supported.">
-								Root&nbsp;
+								Root <span style="background-color: #838383; border-radius: 1em; padding: 0.2em; color: white;">?</span>&nbsp;
 							</span>
 							<select x-model="midi.root" x-on:change="calcNoteOffset(); root.note = midi.root; root.freq = note2freqMap[root.note];">
 								<template x-for="key in midi.scaleNotes">
