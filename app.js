@@ -37,13 +37,14 @@ function ScaleApp()
 				  color: this.colors[0],
 			  },
 			  type: 'scatter',
-			  name: '1'
+			  name: '1'.padStart (5, ' ')
 			}],
 			{
 				xaxis: {
 					showticklabels: false,
 					range: [0, Math.PI * this.graph_periods],
-					title: { text: 'time' }
+					title: { text: 'time' },
+					automargin: false,
 				},
 				yaxis: {
 					showticklabels: false,
@@ -56,6 +57,11 @@ function ScaleApp()
 					b: 0,
 					t: 10,
 					pad: 0
+				},
+				legend: {
+					font: {
+					  family: 'Courier New, monospace',
+					},
 				},
 				showlegend: true,
 				hovermode: false,
@@ -459,7 +465,7 @@ function ScaleApp()
 						shape: 'spline',
 						color: this.colors[degree],
 					},
-					name: (degree + 1) + (octave * this.curr_notes.length)         
+					name: `${String ( (degree + 1) + (octave * this.curr_notes.length) ).padStart (5, ' ')} <br />`
 				};
 
 				Plotly.addTraces ('graph', trace);
@@ -634,8 +640,8 @@ function ScaleApp()
 							{
 								this.midi.scheduledNotes = [];
 							}
-						}, (note.durationTicks * 1/this.midi.tempo) - 350 );
-					}, note.ticks * 1/this.midi.tempo ) );
+						}, (note.durationTicks * (1/this.midi.tempo) ) - 350 );
+					}, note.ticks * (1/this.midi.tempo) ) );
 				});
 			});
 		},
