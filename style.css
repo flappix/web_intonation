@@ -85,7 +85,7 @@ button {
 	background-color: #E2E2E2;
 	border-radius: 0.3em;
 	margin: 0.2em;
-	padding: 0 0.3em 0 0.3em;
+	padding: 0.5em;
 	display: flex;
 	align-items: center;
 	box-shadow: 2px 2px 5px #929292;

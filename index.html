@@ -19,7 +19,7 @@
 	</head>
 
 	<body x-data="ScaleApp()" x-on:keydown="key_check_on" x-on:keyup="key_check_off">
-		<div style="display: flex; justify-content: space-between;">
+		<div style="display: flex; justify-content: space-between; align-items: start;">
 			<div style="font-weight: bold; font-size: 2em;">			
 				Musical Tuing Simulator
 				<span style="display: none;">Free online simulator for exploring musical tunings and temperaments. Supports just intonation, equal temperament, pythtagoreian tuning, meantone temperament</span>
@@ -32,7 +32,7 @@
 					<div class="tab" :style="{'z-index': tab == 'midi' ? 2 : 0, 'background-color': tab == 'midi' ? 'white' : '#F0F0F0'}" x-on:click="tab = 'midi'">Midi (<i>experimental</i>)</div>
 				</div>
 				<div style="border: 1px solid black; padding: 0.5em; margin: 0.5em; margin-top: 0; z-index: 1; position: relative; border-radius: 0 0.5em 0.5em 0.5em;" class="box" x-show="tab == 'tuning'">
-					<div style="display: flex; align-items: center;">
+					<div style="display: flex; align-items: center; flex-wrap: wrap;">
 						<div class="setting">
 							<span style="margin-right: 0.2em;">Tuning</span>
 							<select x-model="curr_tuning" x-on:change="curr_notes = createFromTemplate (curr_tuning, curr_scale)">
@@ -55,8 +55,8 @@
 						</div>
 						
 						<div class="setting">
-							Root &nbsp;
-							<select x-model="root.note" x-on:change="root.freq = note2freqMap[root.note];">
+							<span style="margin-right: 0.2em;">Root</span>
+							<select x-model="root.note" x-on:change="root.freq = note2freqMap[root.note];" style="margin-right: 0.2em;">
 								<template x-for="key in midi.scaleNotes">
 									<option x-html="key"  :selected="key == root.note"></option>
 								</template>
@@ -101,7 +101,7 @@
 					</div>
 				</div>
 				<div style="border: 1px solid black; padding: 0.5em; margin: 0.5em; margin-top: 0; z-index: 1; position: relative; border-radius: 0 0.5em 0.5em 0.5em; display: none;" class="box" x-show="tab == 'midi'">
-					<div style="display: flex; align-items: center;">
+					<div style="display: flex; align-items: center; flex-wrap:flex;">
 						<div class="setting">
 							<input type="file" x-on:change="readMidiFile ($el)" style="border: 1px solid black; border-radius: 0.5em; margin: 1em;" />
 							<span x-show="midi.error != null" x-html="midi.error" style="color: red; margin: 1em;"></span>
