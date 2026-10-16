@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>web Intonation</title>
+		<meta charset="utf-8" />
+		<title>WebIntonation – Hear and Compare Musical Tuning Systems Online</title>
 		<script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
 		<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 		<link rel="stylesheet" href="https://unpkg.com/keyboard-css@1.2.4/dist/css/main.min.css" />
@@ -10,9 +11,29 @@
 		<script src="https://unpkg.com/@tonejs/midi"></script>
 
 		
-		<meta name="description" content="Free online simulator for hearing and developing musical tunings, temperaments and tunings" />
+		<meta name="description" content="Free online simulator to hear and compare musical tuning systems: just intonation, equal temperament, Pythagorean and meantone tuning – or build your own custom temperament." />
+		<link rel="canonical" href="https://flappix.github.io/web_intonation/" />
+		<meta property="og:title" content="WebIntonation – Hear and Compare Musical Tuning Systems" />
+		<meta property="og:description" content="Play just intonation, equal temperament, Pythagorean and meantone tuning side by side, or design your own. Free, in your browser." />
+		<meta property="og:site_name" content="WebIntonation" />
 		<meta property="og:type" content="website" />
 		<meta property="og:url" content="https://flappix.github.io/web_intonation/" />
+		<meta property="og:image" content="https://flappix.github.io/web_intonation/screenshot.jpg" />
+		<meta name="twitter:card" content="summary_large_image" />
+		<script type="application/ld+json">
+		{
+			"@context": "https://schema.org",
+			"@type": "WebApplication",
+			"name": "WebIntonation",
+			"url": "https://flappix.github.io/web_intonation/",
+			"description": "Online simulation tool for demonstrating differences in musical tuning systems and temperaments and for developing your own custom tuning system.",
+			"applicationCategory": "MusicApplication",
+			"operatingSystem": "Any",
+			"browserRequirements": "Requires a modern web browser with Web Audio support",
+			"image": "https://flappix.github.io/web_intonation/screenshot.jpg",
+			"offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
+		}
+		</script>
 
 		<script type="text/javascript" src="app.js"></script>
 		<link rel="stylesheet" href="style.css" />
